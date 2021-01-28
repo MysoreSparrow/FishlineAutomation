@@ -12,10 +12,9 @@ import cv2
 # TODO: Add ThresholdSegmentationLevelSetImageFilter as separate function
 # TODO: Try a combination of couple of these filters. or to create your own class of filters and functions
 # Done: Huang and Li is done. Not useful. Shanbag is done, could be quite useful.
-#
+# Done: Combo filters done.
 
 
-# Setting Default values for plots
 plt.rcParams['figure.figsize'] = [8, 6]
 plt.rcParams['figure.dpi'] = 100
 plt.rcParams["savefig.format"] = 'tif'
@@ -23,7 +22,7 @@ plt.rcParams["savefig.format"] = 'tif'
 _path = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/foxp2/"
 
 #sample_path = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/sample/"
-sample_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/PmCH1/'
+sample_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/foxp2/'
 #nrrd_path = "C:/Users/keshavgubbi/Desktop/filestructure/mocktransf/PmCH1/individual_transformed"
 #outpath = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/foxp2/renyi/"
 outpath = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/PmCH1/multi_otsu/'
@@ -273,7 +272,7 @@ def threshold_using_shanbag_filter(img):
     Shanbhag_filter.SetInsideValue(0)
     Shanbhag_filter.SetOutsideValue(1)
     Shanbhag_filter_segmented_image = Shanbhag_filter.Execute(image)
-    Shanbhag_filter_image = np.reshape(Shanbhag_filter_segmented_image, (974, 597))
+    Shanbhag_filter_segmented_image = np.reshape(Shanbhag_filter_segmented_image, (974, 597))
     print(" Shanbag Threshold:", Shanbhag_filter.GetThreshold())
     # **Inline Display of Image**
     fig = plt.figure(edgecolor='k')
@@ -285,9 +284,10 @@ def threshold_using_shanbag_filter(img):
 
     print("saving")
     # plt.savefig("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/k/MaxEntropy_{}.tif".format(maxentropy_filter_segmented_image),dpi = 100, cmap="gray")
-    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/foxp2/Shanbag/Shanbag_{}.jpg".format(img), Shanbhag_filter_image, cmap="gray")
+    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/foxp2/Shanbag/Shanbag_{}.jpg".format(img), Shanbhag_filter_segmented_image, cmap="gray")
 
-    return Shanbhag_filter_image
+    return Shanbhag_filter_segmented_image
+
 
 def threshold_using_combo_filter(img):
     print(os.path.join(sample_path, filename))
@@ -305,8 +305,6 @@ def threshold_using_combo_filter(img):
     print(" ME Threshold:", MaxEntropy_filter.GetThreshold())
     combo_segmented_image = Shanbhag_filter.Execute(MaxEntropy_filter_image)
     print(" S Threshold:", Shanbhag_filter.GetThreshold())
-
-
     combo_segmented_image = np.reshape(combo_segmented_image, (974, 597))
 
     # **Inline Display of Image**
@@ -324,11 +322,41 @@ def threshold_using_combo_filter(img):
     return combo_segmented_image
 
 
+def threshold_using_combo1_filter(img):
+    print(os.path.join(sample_path, filename))
+    image = sitk.ReadImage(os.path.join(sample_path, filename))
+    # image_details(image)
+
+    Shanbhag_filter = sitk.ShanbhagThresholdImageFilter()
+    Shanbhag_filter.SetInsideValue(0)
+    Shanbhag_filter.SetOutsideValue(1)
+    Shanbhag_image = Shanbhag_filter.Execute(image)
+    print(" Shanbag Threshold:", Shanbhag_filter.GetThreshold())
+    multi_otsu_filter = sitk.OtsuMultipleThresholdsImageFilter()
+    combo1_segmented_image = multi_otsu_filter.Execute(Shanbhag_image)
+    #print(" MO Threshold:", multi_otsu_filter.GetThreshold())
+    combo1_segmented_image = np.reshape(combo1_segmented_image, (974, 597))
+
+    # **Inline Display of Image**
+    fig = plt.figure(edgecolor='k')
+    ax = fig.add_axes([0, 0, 1, 1])
+    plt.axis("Off")
+    # plt.title('Shanbhag_{}'.format(img))
+    # plt.imshow(Shanbhag_filter_image, cmap='gray')
+    # plt.show()
+
+    print("saving")
+    # plt.savefig("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/k/MaxEntropy_{}.tif".format(maxentropy_filter_segmented_image),dpi = 100, cmap="gray")
+    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/combo1_{}.jpg".format(img), combo1_segmented_image, cmap="gray")
+
+    return combo1_segmented_image
+
+
 def threshold_using_alternative_im(img):
     print(os.path.join(sample_path, filename))
     image = cv2.imread(os.path.join(sample_path, filename), 0)
     #image = cv2.medianBlur(image, 5)
-    image = cv2.GaussianBlur(image, (3,3),0)
+    image = cv2.GaussianBlur(image, (3, 3), 0)
     #image = cv2.bilateralFilter(image, 9,75,75)
 
     ret, th1 = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
@@ -337,9 +365,10 @@ def threshold_using_alternative_im(img):
     plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/alternative_im_{}.jpg".format(img), th1, cmap="gray")
     return th1
 
+
 for filename in os.listdir(sample_path):
     if filename.endswith(".nrrd") or filename.endswith(".tif"):
-        print(os.path.join(sample_path,filename))
+        print(os.path.join(sample_path, filename))
         # opencv_thresh_image = threshold_otsu_using_OpenCV(filename)
         # otsu_thresh_image = threshold_using_OtsuFilter(filename)
         #multi_otsu_thresh_image = threshold_using_multiOtsu_Filter(filename)
@@ -351,8 +380,9 @@ for filename in os.listdir(sample_path):
         #adaptive_gaussian_image = threshold_using_adaptivegaussian_opencv(filename)
         #li_filter_image = threshold_using_li_filter(filename)
         #alternative_im_image = threshold_using_alternative_im(filename)
-        #Shanbhag_filter_image = threshold_using_shanbag_filter(filename)
-        combo_segmented_image = threshold_using_combo_filter(filename)
+        Shanbhag_filter_image = threshold_using_shanbag_filter(filename)
+        #combo_segmented_image = threshold_using_combo_filter(filename)
+        #combo1_segmented_image = threshold_using_combo1_filter(filename)
 
 """image = sitk.ReadImage(os.path.join(path, filename))
 print("image size:",image.GetSize())

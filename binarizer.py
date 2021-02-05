@@ -8,15 +8,9 @@ from skimage.util import img_as_ubyte
 from skimage.filters.rank import entropy
 from skimage.color import rgb2gray
 
-# TODO: Fix the dimensions of images by making it generalised
+
 # TODO: Create separate function for saving images
 # TODO: Figure out a nice way to display inline images and plots in Pycharm
-# TODO: Redo Renyi function by modifying Max Entropy Function
-# TODO: Add IsoData, Huang, Li and sk image entropy filters as separate functions
-# TODO: Add ThresholdSegmentationLevelSetImageFilter as separate function
-# TODO: Try a combination of couple of these filters. or to create your own class of filters and functions
-# Done: Huang and Li is done. Not useful. Shanbag is done, could be quite useful.
-# Done: Combo filters done.
 
 
 plt.rcParams['figure.figsize'] = [8, 6]
@@ -24,9 +18,8 @@ plt.rcParams['figure.dpi'] = 100
 plt.rcParams["savefig.format"] = 'tif'
 
 _path = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/foxp2/"
-
 # sample_path = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/sample/"
-sample_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/foxp2/'
+sample_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/data/PmCH1/'
 # nrrd_path = "C:/Users/keshavgubbi/Desktop/filestructure/mocktransf/PmCH1/individual_transformed"
 # outpath = "C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/foxp2/renyi/"
 # outpath = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/{}/'.format(line)
@@ -71,6 +64,9 @@ def threshold_using_OtsuFilter(img):
     # plt.title('otsu_{}'.format(img))
     # plt.imshow(otsu_segmented_image, cmap='gray')
     # plt.savefig(os.path.join(outpath, 'otsu_{}'.format(img)), dpi=100)
+    # **Inline Display of Image**
+    fig = plt.figure(edgecolor='k')
+    ax = fig.add_axes([0, 0, 1, 1])
 
     ax.axis("Off")
     # plt.show()
@@ -146,21 +142,18 @@ def threshold_using_Yen_Filter(img):
     yen_filter = sitk.YenThresholdImageFilter()
     yen_filter.SetInsideValue(0)
     yen_filter.SetOutsideValue(1)
-    yen_filter_segmented_image = yen_filter.Execute(image)
-    yen_filter_segmented_image = np.reshape(yen_filter_segmented_image, (h, w))
+    yen_filter_image = yen_filter.Execute(image)
+    yen_filter_image = np.reshape(yen_filter_image, (h, w))
     print(" yen_filter Threshold:", yen_filter.GetThreshold())
 
     # **Inline Display of Image**
     fig = plt.figure(edgecolor='k')
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("Off")
-    # plt.title('yen_{}'.format(img))
-    # plt.imshow(yen_filter_segmented_image, cmap='gray')
-    # plt.show()
-    # print("saving")
-    plt.imsave(os.path.join(outpath, "yen_{}".format(img) + ".tiff"), yen_filter_segmented_image, cmap="gray")
 
-    return yen_filter_segmented_image
+    plt.imsave(os.path.join(outpath, "yen_{}".format(img) + ".tiff"), yen_filter_image, cmap="gray")
+
+    return yen_filter_image
 
 
 def threshold_using_intermode_Filter(img):
@@ -247,7 +240,7 @@ def threshold_using_li_filter(img):
 
     #plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/Li_{}.jpg".format(img), li_filter_image,
     #           cmap="gray")
-    plt.imsave(os.path.join(outpath, "max_entropy_{}".format(img) + ".tiff"), li_filter_image, cmap="gray")
+    plt.imsave(os.path.join(outpath, "li_{}".format(img) + ".tiff"), li_filter_image, cmap="gray")
 
     return li_filter_image
 
@@ -290,18 +283,18 @@ def threshold_using_combo_filter(img):
 
     MaxEntropy_filter_image = MaxEntropy_filter.Execute(image)
     print(" MaxEntropy Threshold:", MaxEntropy_filter.GetThreshold())
-    combo_segmented_image = Shanbhag_filter.Execute(MaxEntropy_filter_image)
+    combo_image = Shanbhag_filter.Execute(MaxEntropy_filter_image)
     print(" Shanbhag Threshold:", Shanbhag_filter.GetThreshold())
-    combo_segmented_image = np.reshape(combo_segmented_image, (h, w))
+    combo_image = np.reshape(combo_image, (h, w))
 
     # **Inline Display of Image**
     fig = plt.figure(edgecolor='k')
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("Off")
 
-    plt.imsave(os.path.join(outpath, "Combo_{}".format(img) + ".tiff"), combo_segmented_image, cmap="gray")
+    plt.imsave(os.path.join(outpath, "Combo_{}".format(img) + ".tiff"), combo_image, cmap="gray")
 
-    return combo_segmented_image
+    return combo_image
 
 
 def threshold_using_combo1_filter(img):
@@ -316,17 +309,66 @@ def threshold_using_combo1_filter(img):
     Shanbhag_image = Shanbhag_filter.Execute(image)
     print(" Shanbhag Threshold:", Shanbhag_filter.GetThreshold())
     multi_otsu_filter = sitk.OtsuMultipleThresholdsImageFilter()
-    combo1_segmented_image = multi_otsu_filter.Execute(Shanbhag_image)
-    combo1_segmented_image = np.reshape(combo1_segmented_image, (h, w))
+    combo1_image = multi_otsu_filter.Execute(Shanbhag_image)
+    combo1_image = np.reshape(combo1_image, (h, w))
 
     # **Inline Display of Image**
     fig = plt.figure(edgecolor='k')
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis("Off")
 
-    plt.imsave(os.path.join(outpath, "Combo1_{}".format(img) + ".tiff"), combo1_segmented_image, cmap="gray")
+    plt.imsave(os.path.join(outpath, "Combo1_{}".format(img) + ".tiff"), combo1_image, cmap="gray")
 
-    return combo1_segmented_image
+    return combo1_image
+
+
+def threshold_using_isodata(img):
+    print(os.path.join(sample_path, filename))
+    image = sitk.ReadImage(os.path.join(sample_path, filename))
+    # image_details(image)
+    w, h = image.GetSize()
+
+    iso_filter = sitk.IsoDataThresholdImageFilter()
+    iso_filter.SetInsideValue(0)
+    iso_filter.SetOutsideValue(1)
+    iso_image = iso_filter.Execute(image)
+    print("Iso threshold:", iso_filter.GetThreshold())
+    iso_image = np.reshape(iso_image, (h, w))
+
+    # **Inline Display of Image**
+    fig = plt.figure(edgecolor='k')
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis("Off")
+
+    #plt.imsave(os.path.join(outpath, "iso_{}".format(img) + ".tiff"), iso_image, cmap="gray")
+    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/PmCH1/iso_{}".format(img) + ".tiff", iso_image, cmap="gray")
+
+    return iso_image
+
+
+def threshold_using_Moments(img):
+    print(os.path.join(sample_path, filename))
+    image = sitk.ReadImage(os.path.join(sample_path, filename))
+    # image_details(image)
+    w, h = image.GetSize()
+
+    moments_filter = sitk.MomentsThresholdImageFilter()
+    moments_filter.SetInsideValue(0)
+    moments_filter.SetOutsideValue(1)
+    moment_image = moments_filter.Execute(image)
+    print("Moment threshold:", moments_filter.GetThreshold())
+    moment_image = np.reshape(moment_image, (h, w))
+
+    # **Inline Display of Image**
+    fig = plt.figure(edgecolor='k')
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis("Off")
+
+    #plt.imsave(os.path.join(outpath, "iso_{}".format(img) + ".tiff"), iso_image, cmap="gray")
+    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/PmCH1/moments_{}".format(img) + ".tiff",
+               moment_image, cmap="gray")
+
+    return moment_image
 
 
 def threshold_otsu_using_opencv(img):
@@ -345,10 +387,10 @@ def threshold_using_adaptivemean_opencv(img):
     image = cv2.imread(os.path.join(sample_path, filename), 0)
     image = cv2.medianBlur(image, 5)
     #ret, th1 = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-    th2 = cv2.adaptiveThreshold(image, 127, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    th2 = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
     print("saving adaptive mean")
-    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/Am_{}.jpg".format(img), th2, cmap="gray")
+    plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/am_{}.jpg".format(img), th2, cmap="gray")
     return th2
 
 
@@ -357,7 +399,7 @@ def threshold_using_adaptivegaussian_opencv(img):
     image = cv2.imread(os.path.join(sample_path, filename), 0)
     image = cv2.medianBlur(image, 5)
     # ret, th1 = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-    th3 = cv2.adaptiveThreshold(image, 127, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    th3 = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
     print("saving adaptive gaussian")
     plt.imsave("C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/ag_{}.jpg".format(img), th3,
                cmap="gray")
@@ -371,11 +413,13 @@ def threshold_clahe(img):
     #plt.hist(image.flat, bins=100, range=(0, 255))
     #plt.hist(equ.flat, bins=100, range=(0, 255))
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(2, 2))
-    clahe_image = clahe.apply(image)
+    clahe_image = clahe.apply(equ)
+    clahearray = np.asarray(clahe_image)
+    # Otsu thresholding
+    ret2, th2 = cv2.threshold(clahearray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     #plt.hist(clahe_image.flat, bins=100, range=(100, 255))
-    plt.imsave(os.path.join(outpath, "clahe_{}".format(img) + ".tiff"), clahe_image, cmap="gray")
-    return clahe_image
-
+    plt.imsave(os.path.join(outpath, "clahe_{}".format(img) + ".tiff"), th2, cmap="gray")
+    return th2
 
 
 def threshold_sk_entropy(img):
@@ -392,22 +436,24 @@ line_name = input("enter line_name:")
 
 for filename in os.listdir(sample_path):
     if filename.endswith(".nrrd") or filename.endswith(".tif"):
-        outpath = 'C:/Users/keshavgubbi/Desktop/test/Output/{}/'.format(line_name)
+        outpath = 'C:/Users/keshavgubbi/Desktop/ATLAS/S5-Binarizing/Output/{}/'.format(line_name)
         #print(os.path.join(sample_path, filename))
 
-        # opencv_thresh_image = threshold_otsu_using_OpenCV(filename)
-        # otsu_thresh_image = threshold_using_OtsuFilter(filename)
+        #opencv_thresh_image = threshold_otsu_using_OpenCV(filename)
+        #otsu_thresh_image = threshold_using_OtsuFilter(filename)
         #multi_otsu_thresh_image = threshold_using_multiOtsu_Filter(filename)
-        # renyi_thresh_image = threshold_using_Renyi_Filter(filename)
-        # yen_filter_segmented_image = threshold_using_Yen_Filter(filename)
+        #renyi_thresh_image = threshold_using_Renyi_Filter(filename)
+        #yen_filter_segmented_image = threshold_using_Yen_Filter(filename)
         #intermodes_filter_segmented_image = threshold_using_intermode_Filter(filename)
-        # maxentropy_image = threshold_using_MaxEntropy_Filter(filename)
+        #maxentropy_segmented_image = threshold_using_MaxEntropy_Filter(filename)
         #adaptive_mean_image = threshold_using_adaptivemean_opencv(filename)
         #adaptive_gaussian_image = threshold_using_adaptivegaussian_opencv(filename)
-        # li_filter_image = threshold_using_li_filter(filename)
+        #li_segmented_image = threshold_using_li_filter(filename)
         # alternative_im_image = threshold_using_alternative_im(filename)
-        # Shanbhag_filter_image = threshold_using_shanbhag_filter(filename)
-        # combo_segmented_image = threshold_using_combo_filter(filename)
-        combo1_segmented_image = threshold_using_combo1_filter(filename)
-        #clahe_segmented_image = threshold_clahe(filename)
+        #Shanbhag_filter_image = threshold_using_shanbhag_filter(filename)
+        #combo_segmented_image = threshold_using_combo_filter(filename)
+        #combo1_segmented_image = threshold_using_combo1_filter(filename)
+        clahe_segmented_image = threshold_clahe(filename)
         #sk_entropy_image = threshold_sk_entropy(filename)
+        moment_segmented_image = threshold_using_Moments(filename)
+        iso_segmented_image = threshold_using_isodata(filename)

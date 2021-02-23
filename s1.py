@@ -19,18 +19,43 @@ import os
 import re
 import shutil
 import numpy as np
-from skimage import io
+from skimage import io, color
 import matplotlib.pyplot as plt
 import imageio
 import SimpleITK as sitk
 import cv2
 import time
+from PIL import Image
 
 start = time.time()
 source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/'
 dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/ref'
 dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/sig'
 data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
+
+
+def image_details(file):
+    print("********Image Details**************")
+    print("Size:", file.GetSize())
+    print("PixelIDType:", file.GetPixelIDTypeAsString())
+    print("Voxel Size:", file.GetSpacing())
+
+
+def convert_to_8bit(file):
+    print("********Checking Image Type********")
+    print("PixelIDType:", file.GetPixelIDTypeAsString())
+    if file.GetPixelID() != 1:
+        file.SetPixelID = 1
+        print("New PixelIDType:", file.GetPixelIDTypeAsString())
+    #return plt.imread(file).astype(np.uint8)
+    return file
+
+
+def set_voxel_size(file):
+    print("********Checking Voxel Size********")
+    file.SetSpacing([1.0, 1.0, 1.0])
+    print("Voxel Size:", file.GetSpacing())
+    return file
 
 
 #Check if each file belongs to Ch00 or Ch01 and split Channels( move files to respective location
@@ -68,35 +93,6 @@ print(f"The sig_image has dimensions : {sig_image.shape}")
 imageio.mimwrite(os.path.join(data_path, "ref_image" + ".tif"), ref_image)
 imageio.mimwrite(os.path.join(data_path, "sig_image" + ".tif"), sig_image)
 
-#*************************************************#
-#Reading the respective saved images
-image_r = sitk.ReadImage(os.path.join(data_path, "ref_image.tif"))
-image_s = sitk.ReadImage(os.path.join(data_path, "sig_image.tif"))
-
-
-def image_details(file):
-    print("********Image Details**************")
-    print("Size:", file.GetSize())
-    print("PixelIDType:", file.GetPixelIDTypeAsString())
-    print("Voxel Size:", file.GetSpacing())
-
-
-def convert_to_8bit(file):
-    print("********Checking Image Type********")
-    print("PixelIDType:", file.GetPixelIDTypeAsString())
-    if file.GetPixelID() != 1:
-        file.SetPixelID = 1
-        print("New PixelIDType:", file.GetPixelIDTypeAsString())
-    #return plt.imread(file).astype(np.uint8)
-    return file
-
-
-def set_voxel_size(file):
-    print("********Checking Voxel Size********")
-    print("Voxel Size:", file.GetSpacing())
-    file.SetSpacing([1.0, 1.0, 1.0])
-    print("Voxel Size:", file.GetSpacing())
-
 
 def enhance_contrast(file):
     """
@@ -107,39 +103,44 @@ OpenCV already implements this as cv2.convertScaleAbs(), just provide user defin
     :param file: alpha (α) and beta (β), file
     :return: contrast enhanced image
     """
+    print("Enhancing contrast:")
     alpha = 1.5
-    beta = 0
-    CE_image = cv2.imread(file)
-    CE_image = cv2.convertScaleAbs(file, alpha=alpha, beta=beta)
-    return CE_image
+    beta = 50
+    im = cv2.imread(file, cv2.COLOR_BGR2GRAY)
+    ce_image = cv2.convertScaleAbs(im, alpha=alpha, beta=beta)
+    print("ce image shape:", ce_image.shape)
+    ce_image = Image.fromarray(ce_image)
+    #imageio.mimwrite(os.path.join(data_path, "CE_{}".format(item) + ".tif"), ce_image)
+    plt.imsave(os.path.join(data_path, "CE_{}".format(item) + ".tiff"), ce_image, cmap="gray")
+    return ce_image
 
 
-#obtaining basic image details
-image_details(image_r)
-image_details(image_s)
+for item in os.listdir(data_path):
+    if item.endswith(".tif"):
+        print("#*************************************************#")
+        print("FILENAME:", os.path.join(data_path, item))
 
+        # Reading respective saved images
+        image = sitk.ReadImage(os.path.join(data_path, item))
 
-#converting to 8bit image
-convert_to_8bit(image_r)
-convert_to_8bit(image_s)
+        #Getting image Details
+        #image_details(image)
 
+        # converting to 8bit image
+        image8 = convert_to_8bit(image)
 
-#Setting Voxel Size
-set_voxel_size(image_r)
-set_voxel_size(image_s)
+        # Setting Voxel Size
+        imageVS = set_voxel_size(image8)
+        #print(imageVS.GetPixelIDTypeAsString())
+        #print(imageVS.GetSize())
 
-#Contrast Enhancement
-#enhance_contrast(np.float32(image_r))
-#enhance_contrast(np.float32(image_s))
+        # Contrast Enhancement (CE)
+        imageCE = enhance_contrast(os.path.join(data_path, item))
 
+        #so far, so good. seems to performing fine until now.
+        #Need to save such stacked tiff images in different way;mimwrite wotn work!
+        #use from tifffile import imsave
+        #imsave(os.path.join(data_path, "CE" + ".tif"), imageCE)
+        print("#*************************************************#")
 end = time.time()
-t = end - start
-print(t)
-
-
-#converting to 8bit image
-#convert_to_8bit(image_r)
-#convert_to_8bit(image_s)
-
-#Saving CE images
-#plt.imsave(os.path.join(data_path, "CE_imager" + ".tif"), image_r)
+print(end - start)

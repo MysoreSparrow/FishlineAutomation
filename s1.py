@@ -3,7 +3,7 @@
 # Author: Keshav Prasad Gubbi
 
 #DONE: Read the image as a series of slices for all formats : .czi, .nrrd, .tif, .svs and display all details
-#DONE: Split channels and save each file independently.
+#DONE: Split channels and save each f independently.
 #DONE: create a folder for saving the respective images into separate folders
 #DONE: save the respective images into the folders
 #DONE: Read the images from each directory using pims
@@ -18,15 +18,14 @@
 import os
 import re
 import shutil
-
-from skimage import io
-import matplotlib.pyplot as plt
+from skimage import io, img_as_ubyte, util, exposure, img_as_float
+#import matplotlib.pyplot as plt
 import imageio
 import cv2
 import time
-from PIL import Image
+import numpy as np
+from medpy.io import load
 import SimpleITK as sitk
-
 start = time.time()
 source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/'
 dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/ref'
@@ -34,43 +33,57 @@ dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_
 data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
 CE_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/CE'
 
-def image_details(file):
+
+def image_details(f):
     print("********Image Details**************")
-    image = sitk.ReadImage(file)
-    print("Size:", image.GetSize())
-    print("PixelIDType:", image.GetPixelIDTypeAsString())
-    print(" Original Voxel Size:", image.GetSpacing())
+    img = io.imread(f)
+    print(img.dtype)
+    print("Shape:", img.shape)
 
 
-def convert_to_8bit(file):
+def convert_to_8bit(f):
     print("********Checking Image Type********")
-    print("PixelIDType:", file.GetPixelIDTypeAsString())
-    if file.GetPixelID() != 1:
-        file.SetPixelID = 1
-        print("New PixelIDType:", file.GetPixelIDTypeAsString())
-    return file
+    img = io.imread(f)
+    img_as_ubyte(img)
+    print(img.dtype)
+    return img
 
 
-def set_voxel_size(file):
+def set_voxel_size(f):
     print("********Fixing Voxel Size********")
-    file.SetSpacing([1.0 * 10**-6, 1.0 * 10**-6, 1.0 * 10**-6])
-    print(" New Voxel Size:", file.GetSpacing())
-    return file
+    image_data, image_header = load(f)
+    print(image_header.get_voxel_spacing())
+    print(image_header.get_offset())
+    #image_header.set_voxel_spacing([1.0, 1.0])
+    #print(image_header.get_voxel_spacing())
+
+    image = sitk.ReadImage(f)
+    print(image.GetSpacing())
+
+    return f
 
 
-def enhance_contrast(file):
+def ce(f):
+    i = img_as_float(io.imread(f)).astype(np.float64)
+    gamma_corrected = exposure.adjust_gamma(i, gamma=0.4, gain=1)
+    sigmoid_corrected = exposure.adjust_sigmoid(i)
+    log_corrected = exposure.adjust_log(i)
+
+    return gamma_corrected
+
+def enhance_contrast(f):
     """
 Brightness and contrast can be adjusted using alpha (α) and beta (β), respectively.
 NOTE: (α) --> contrast control (1.0-3.0);  (β) --> Brightness control (0-100).
 The expression can be written as: g(i,j) = (α) * f(i,j) + (β).
 OpenCV already implements this as cv2.convertScaleAbs(), just provide user defined alpha and beta values.
-    :param file: alpha (α) and beta (β), file
+    :param f: alpha (α) and beta (β), f
     :return: contrast enhanced image
     """
-    print(f"Enhancing contrast for {file}:")
+    print(f"Enhancing contrast for {f}:")
     alpha = 1.5
     beta = 50
-    im = cv2.imread(file, cv2.COLOR_BGR2GRAY)
+    im = cv2.imread(f, cv2.COLOR_BGR2GRAY)
     ce_image = cv2.convertScaleAbs(im, alpha=alpha, beta=beta)
     print("ce image shape:", ce_image.shape)
     # converting array to image object
@@ -78,22 +91,27 @@ OpenCV already implements this as cv2.convertScaleAbs(), just provide user defin
     return ce_image
 
 
-#Check if each file belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
+#Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
 ref_counter = sig_counter = 0
 for file in os.listdir(source_path):
-    #print(file)
-    if re.search("_ch0{2}", str(file)):
-        ref_counter += 1
-        #print(f"ref_counter= {ref_counter}")
-        #print("ref file:", file)
-        shutil.copy(f"{source_path}/{file}", dest_path)
-    elif re.search("_ch01{1}", str(file)):
-        sig_counter += 1
-        #print(f"sig_counter = {sig_counter}")
-        #print(f"sig file:{file}")
-        shutil.copy(f"{source_path}/{file}", dest_path1)
-    else:
-        print("Its a Folder. Unwanted/Unrecognized file format.")
+    if file.endswith(".tif"):
+        print(file)
+        image_details(os.path.join(source_path, file))
+        convert_to_8bit(os.path.join(source_path, file))
+        #set_voxel_size(os.path.join(source_path, file))
+        ce(os.path.join(source_path, file))
+        if re.search("_ch0{2}", str(file)):
+            ref_counter += 1
+            #print(f"ref_counter= {ref_counter}")
+            #print("ref f:", f)
+            shutil.copy(f"{source_path}/{file}", dest_path)
+        elif re.search("_ch01{1}", str(file)):
+            sig_counter += 1
+            #print(f"sig_counter = {sig_counter}")
+            #print(f"sig f:{f}")
+            shutil.copy(f"{source_path}/{file}", dest_path1)
+        else:
+            print("Its a Folder. Unwanted/Unrecognized f format.")
 
 #TODO: iterate through all files in data_path, apply all 3 functions to it and save it there itself
 # and  then stacked together.
@@ -101,24 +119,27 @@ for file in os.listdir(source_path):
 
 for item in os.listdir(dest_path):
     if item.endswith(".tif"):
+        pass
+        #print("FILENAME:", os.path.join(dest_path, item))
+        # Contrast Enhancement (CE)
+        #image = enhance_contrast(os.path.join(dest_path, item))
+        #Saving the Ce images in a separate folder for sanity check
+        #print("Saving f:", item)
+        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
+
+
+for item in os.listdir(dest_path):
+    if item.endswith(".tif"):
         print("#*************************************************#")
         print("FILENAME:", os.path.join(dest_path, item))
 
-        # Contrast Enhancement (CE)
-        imageCE = enhance_contrast(os.path.join(dest_path, item))
-        #Saving the Ce images in a separate folder for sanity check
-        plt.imsave(os.path.join(dest_path, f"{item}.tiff"), imageCE, cmap="gray")
-
         # Getting image Details
         image_details(os.path.join(dest_path, item))
-
-        image = sitk.ReadImage(os.path.join(dest_path, item))
         # converting to 8bit image
-        image8 = convert_to_8bit(image)
-
+        #image = convert_to_8bit(image)
         # Setting Voxel Size
-        imageVS = set_voxel_size(image8)
-        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), imageVS, cmap="gray")
+        #image = set_voxel_size(image)
+        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
         print("#*************************************************#")
 
 #Load images sequentially as per respective channels using skimage imageCollection

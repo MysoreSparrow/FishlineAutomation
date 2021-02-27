@@ -39,36 +39,34 @@ def image_details(f):
     img = io.imread(f)
     print(img.dtype)
     print("Shape:", img.shape)
+    return img
 
 
 def convert_to_8bit(f):
     print("********Checking Image Type********")
-    img = io.imread(f)
-    img_as_ubyte(img)
-    print(img.dtype)
-    return img
+    #img = io.imread(f)
+    img_as_ubyte(f)
+    print(f.dtype)
+    return f
 
 
 def set_voxel_size(f):
     print("********Fixing Voxel Size********")
-    image_data, image_header = load(f)
-    print(image_header.get_voxel_spacing())
-    print(image_header.get_offset())
+    #image_data, image_header = load(f)
+    #print(image_header.get_voxel_spacing())
+    #print(image_header.get_offset())
     #image_header.set_voxel_spacing([1.0, 1.0])
     #print(image_header.get_voxel_spacing())
 
     image = sitk.ReadImage(f)
-    print(image.GetSpacing())
+    print('spacing:',image.GetSpacing())
 
     return f
 
 
 def ce(f):
-    i = img_as_float(io.imread(f)).astype(np.float64)
-    gamma_corrected = exposure.adjust_gamma(i, gamma=0.4, gain=1)
-    sigmoid_corrected = exposure.adjust_sigmoid(i)
-    log_corrected = exposure.adjust_log(i)
-
+    #i = img_as_float(io.imread(f)).astype(np.float64)
+    gamma_corrected = exposure.adjust_gamma(f, gamma=.3, gain=1)
     return gamma_corrected
 
 def enhance_contrast(f):
@@ -96,10 +94,11 @@ ref_counter = sig_counter = 0
 for file in os.listdir(source_path):
     if file.endswith(".tif"):
         print(file)
-        image_details(os.path.join(source_path, file))
-        convert_to_8bit(os.path.join(source_path, file))
-        #set_voxel_size(os.path.join(source_path, file))
-        ce(os.path.join(source_path, file))
+
+        image = image_details(os.path.join(source_path, file))
+        image8 = convert_to_8bit(image)
+        imageCE = ce(image8)
+        imageVS = set_voxel_size(os.path.join(source_path, file))
         if re.search("_ch0{2}", str(file)):
             ref_counter += 1
             #print(f"ref_counter= {ref_counter}")

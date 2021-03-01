@@ -1,5 +1,5 @@
 #############################################################
-# * Image Processing Script to process fish lines @ Baier Lab
+# * Image Processing Script to process fish lines @ Baier Lab *
 # Author: Keshav Prasad Gubbi
 
 #DONE: Read the image as a series of slices for all formats : .czi, .nrrd, .tif, .svs and display all details
@@ -8,9 +8,10 @@
 #DONE: save the respective images into the folders
 #DONE: Read the images from each directory using pims
 #DONE: or just load an image sequence with the regex expression for loading the image
-#DONE: check voxel depth and set voxel depth to 1
+#DONE: check voxel depth and set voxel depth to 1 while retaining the other two numbers to be the same.
 #DONE: check Image type or PixelIDType and set it to 8 bit integer type
-#TODO: Enhance Contrast of the image
+#DONE: Enhance Contrast of the image
+#TODO: Save Image after processing
 #TODO: Rotate image
 #TODO: Save after processing as both .nrrd and .tiff in respective folders along with original
 
@@ -18,7 +19,8 @@
 import os
 import re
 import shutil
-from skimage import io, img_as_ubyte, util, exposure, img_as_float
+#from skimage.measure import marching_cubes_lewiner
+from skimage import io, img_as_ubyte, exposure, img_as_float
 #import matplotlib.pyplot as plt
 import imageio
 import cv2
@@ -26,6 +28,8 @@ import time
 import numpy as np
 from medpy.io import load
 import SimpleITK as sitk
+from tifffile import TiffFile
+
 start = time.time()
 source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/'
 dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/ref'
@@ -35,39 +39,105 @@ CE_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhl
 
 
 def image_details(f):
-    print("********Image Details**************")
+    #print("********Image Details**************")
     img = io.imread(f)
-    print(img.dtype)
-    print("Shape:", img.shape)
+    #print(img.dtype)
+    #print("Shape:", img.shape)
+    #print('spacing:', np.spacing(img))
     return img
 
 
 def convert_to_8bit(f):
-    print("********Checking Image Type********")
+    #print("********Checking Image Type********")
     #img = io.imread(f)
     img_as_ubyte(f)
-    print(f.dtype)
+    #print(f.dtype)
     return f
+
+
+def read_voxel_size(f):
+    #print("********Reading Voxel Size********")
+    im = sitk.ReadImage(f)
+    width, height = im.GetSpacing()
+    #print('Current voxel size:', width, height)
+    return width, height
 
 
 def set_voxel_size(f):
+    im = sitk.ReadImage(f)
+    print('Current voxel size:', im.GetSpacing())
     print("********Fixing Voxel Size********")
-    #image_data, image_header = load(f)
-    #print(image_header.get_voxel_spacing())
-    #print(image_header.get_offset())
-    #image_header.set_voxel_spacing([1.0, 1.0])
-    #print(image_header.get_voxel_spacing())
-
-    image = sitk.ReadImage(f)
-    print('spacing:',image.GetSpacing())
-
-    return f
+    im.SetSpacing([w, h, 1.0 * 10**-6])
+    print('New voxel size:', im.GetSpacing())
+    return im
 
 
 def ce(f):
     #i = img_as_float(io.imread(f)).astype(np.float64)
     gamma_corrected = exposure.adjust_gamma(f, gamma=.3, gain=1)
     return gamma_corrected
+
+
+#Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
+ref_counter = sig_counter = 0
+print("#*********************Iterating in Source path**************************#")
+for file in os.listdir(source_path):
+    if file.endswith(".tif"):
+        #print(file)
+        image = image_details(os.path.join(source_path, file))
+        image8 = convert_to_8bit(image)
+        imageCE = ce(image8)
+        w, h = read_voxel_size(os.path.join(source_path, file))
+        #print(w,h)
+        if re.search("_ch0{2}", str(file)):
+            ref_counter += 1
+            #print(f"ref_counter= {ref_counter}")
+            #print("ref f:", f)
+            shutil.copy(f"{source_path}/{file}", dest_path)
+        elif re.search("_ch01{1}", str(file)):
+            sig_counter += 1
+            #print(f"sig_counter = {sig_counter}")
+            #print(f"sig f:{f}")
+            shutil.copy(f"{source_path}/{file}", dest_path1)
+        else:
+            print("Its a Folder. Unwanted/Unrecognized file format.")
+
+
+#Load images sequentially as per respective channels using skimage imageCollection
+ref_image_collection = io.ImageCollection(dest_path + '/*.tif')
+print(f'The ref_image_collection details: {len(ref_image_collection)} frames')
+sig_image_collection = io.ImageCollection(dest_path1 + '/*.tif')
+print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
+#save w,h of first image
+#w,h =  im.GetSpacing()
+
+#Convert these image collection object (sequential images) into a single image
+ref_image = io.concatenate_images(ref_image_collection)
+print(f"The ref_image has dimensions : {ref_image.shape}")
+#ref_image set w,h, newz
+
+sig_image = io.concatenate_images(sig_image_collection)
+print(f"The sig_image has dimensions : {sig_image.shape}")
+
+#Saving these images via mimwrite from imageio
+imageio.mimwrite(os.path.join(data_path, "ref_image" + ".tif"), ref_image)
+imageio.mimwrite(os.path.join(data_path, "sig_image" + ".tif"), sig_image)
+
+
+for item in os.listdir(data_path):
+    if item.endswith(".tif"):
+        print("#*********************Iterating in Data path****************************#")
+        print("FILENAME:", os.path.join(data_path, item))
+        # Setting Voxel Size
+        imageVS = set_voxel_size(os.path.join(data_path, item))
+        #imageVS = set_voxel_size(imageCE)
+
+        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
+        print("#*************************************************#")
+
+end = time.time()
+print(end - start)
+
 
 def enhance_contrast(f):
     """
@@ -89,75 +159,10 @@ OpenCV already implements this as cv2.convertScaleAbs(), just provide user defin
     return ce_image
 
 
-#Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
-ref_counter = sig_counter = 0
-for file in os.listdir(source_path):
-    if file.endswith(".tif"):
-        print(file)
 
-        image = image_details(os.path.join(source_path, file))
-        image8 = convert_to_8bit(image)
-        imageCE = ce(image8)
-        imageVS = set_voxel_size(os.path.join(source_path, file))
-        if re.search("_ch0{2}", str(file)):
-            ref_counter += 1
-            #print(f"ref_counter= {ref_counter}")
-            #print("ref f:", f)
-            shutil.copy(f"{source_path}/{file}", dest_path)
-        elif re.search("_ch01{1}", str(file)):
-            sig_counter += 1
-            #print(f"sig_counter = {sig_counter}")
-            #print(f"sig f:{f}")
-            shutil.copy(f"{source_path}/{file}", dest_path1)
-        else:
-            print("Its a Folder. Unwanted/Unrecognized f format.")
-
-#TODO: iterate through all files in data_path, apply all 3 functions to it and save it there itself
-# and  then stacked together.
-
-
-for item in os.listdir(dest_path):
-    if item.endswith(".tif"):
-        pass
-        #print("FILENAME:", os.path.join(dest_path, item))
-        # Contrast Enhancement (CE)
-        #image = enhance_contrast(os.path.join(dest_path, item))
-        #Saving the Ce images in a separate folder for sanity check
-        #print("Saving f:", item)
-        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
-
-
-for item in os.listdir(dest_path):
-    if item.endswith(".tif"):
-        print("#*************************************************#")
-        print("FILENAME:", os.path.join(dest_path, item))
-
-        # Getting image Details
-        image_details(os.path.join(dest_path, item))
-        # converting to 8bit image
-        #image = convert_to_8bit(image)
-        # Setting Voxel Size
-        #image = set_voxel_size(image)
-        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
-        print("#*************************************************#")
-
-#Load images sequentially as per respective channels using skimage imageCollection
-#ref_image = io.ImageCollection(dest_path + '/*.tif', load_func=imread_convert)
-ref_image_collection = io.ImageCollection(dest_path + '/*.tif')
-print(f'The ref_image_collection details: {len(ref_image_collection)} frames')
-sig_image_collection = io.ImageCollection(dest_path1 + '/*.tif')
-print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
-
-#Convert these image collection object (sequential images) into a single image
-ref_image = io.concatenate_images(ref_image_collection)
-print(f"The ref_image has dimensions : {ref_image.shape}")
-sig_image = io.concatenate_images(sig_image_collection)
-print(f"The sig_image has dimensions : {sig_image.shape}")
-
-#Saving these images via mimwrite from imageio
-imageio.mimwrite(os.path.join(data_path, "ref_image" + ".tif"), ref_image)
-imageio.mimwrite(os.path.join(data_path, "sig_image" + ".tif"), sig_image)
-
-
-end = time.time()
-print(end - start)
+#image_data, image_header = load(f)
+#print(image_header.get_voxel_spacing())
+#print(image_header.get_offset())
+#print("********Fixing Voxel Size********")
+#image_header.set_voxel_spacing([1.0 * 10**-6, 1.0 * 10**-6])
+#print(image_header.get_voxel_spacing())

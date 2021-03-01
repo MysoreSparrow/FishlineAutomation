@@ -19,9 +19,8 @@
 import os
 import re
 import shutil
-#from skimage.measure import marching_cubes_lewiner
 from skimage import io, img_as_ubyte, exposure, img_as_float
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import imageio
 import cv2
 import time
@@ -39,20 +38,20 @@ CE_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhl
 
 
 def image_details(f):
-    #print("********Image Details**************")
+    print("********Image Details**************")
     img = io.imread(f)
-    #print(img.dtype)
-    #print("Shape:", img.shape)
+    print(img.dtype)
+    print("Shape:", img.shape)
     #print('spacing:', np.spacing(img))
     return img
 
 
 def convert_to_8bit(f):
-    #print("********Checking Image Type********")
+    print("********Checking Image Type********")
     #img = io.imread(f)
     img_as_ubyte(f)
-    #print(f.dtype)
-    return f
+    print(f.dtype)
+    return img_as_ubyte(f)
 
 
 def read_voxel_size(f):
@@ -63,7 +62,7 @@ def read_voxel_size(f):
     return width, height
 
 
-def set_voxel_size(f):
+def set_voxel_depth(f):
     im = sitk.ReadImage(f)
     print('Current voxel size:', im.GetSpacing())
     print("********Fixing Voxel Size********")
@@ -84,9 +83,7 @@ print("#*********************Iterating in Source path**************************#
 for file in os.listdir(source_path):
     if file.endswith(".tif"):
         #print(file)
-        image = image_details(os.path.join(source_path, file))
-        image8 = convert_to_8bit(image)
-        imageCE = ce(image8)
+        #Read Voxel_x, Voxel_y from individual slices, which shall be used later!
         w, h = read_voxel_size(os.path.join(source_path, file))
         #print(w,h)
         if re.search("_ch0{2}", str(file)):
@@ -111,6 +108,7 @@ print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
 #save w,h of first image
 #w,h =  im.GetSpacing()
 
+
 #Convert these image collection object (sequential images) into a single image
 ref_image = io.concatenate_images(ref_image_collection)
 print(f"The ref_image has dimensions : {ref_image.shape}")
@@ -128,13 +126,16 @@ for item in os.listdir(data_path):
     if item.endswith(".tif"):
         print("#*********************Iterating in Data path****************************#")
         print("FILENAME:", os.path.join(data_path, item))
+        image = image_details(os.path.join(data_path, item))
+        image8 = convert_to_8bit(image)
+        imageCE = ce(image8)
         # Setting Voxel Size
-        imageVS = set_voxel_size(os.path.join(data_path, item))
-        #imageVS = set_voxel_size(imageCE)
+        imageVS = set_voxel_depth(os.path.join(data_path, item))
+        print(imageVS)
 
-        #plt.imsave(os.path.join(dest_path, f"{item}.tiff"), image, cmap="gray")
         print("#*************************************************#")
-
+        #NEXT: Need to work on saving these processed stacked images properly and quickly!
+        # plt.imsave(os.path.join(data_path, f"{item}.tiff"), imageVS, cmap="gray")
 end = time.time()
 print(end - start)
 

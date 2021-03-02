@@ -19,39 +19,37 @@
 import os
 import re
 import shutil
-from skimage import io, img_as_ubyte, exposure, img_as_float
-import matplotlib.pyplot as plt
-import imageio
-import cv2
+from skimage import io, exposure
 import time
 import numpy as np
-from medpy.io import load
 import SimpleITK as sitk
-from tifffile import TiffFile
+import tifffile as tiff
 
 start = time.time()
-source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/'
-dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/ref'
-dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/sig'
+source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/'
+dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/ref'
+dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/sig'
 data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
-CE_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/2/CE'
 
 
 def image_details(f):
     print("********Image Details**************")
     img = io.imread(f)
-    print(img.dtype)
+    print(type(img))
+    print('Dtype:', img.dtype)
     print("Shape:", img.shape)
-    #print('spacing:', np.spacing(img))
     return img
 
 
 def convert_to_8bit(f):
     print("********Checking Image Type********")
     #img = io.imread(f)
-    img_as_ubyte(f)
-    print(f.dtype)
-    return img_as_ubyte(f)
+    dtype = f.dtype
+    print(dtype)
+    if dtype != 'uint8':
+        f.astype('uint8', copy=False)
+        print(dtype)
+    return f.astype('uint8')
 
 
 def read_voxel_size(f):
@@ -66,14 +64,14 @@ def set_voxel_depth(f):
     im = sitk.ReadImage(f)
     print('Current voxel size:', im.GetSpacing())
     print("********Fixing Voxel Size********")
-    im.SetSpacing([w, h, 1.0 * 10**-6])
+    im.SetSpacing([V_x, V_y, 1.0 * 10**-6])
     print('New voxel size:', im.GetSpacing())
     return im
 
 
 def ce(f):
     #i = img_as_float(io.imread(f)).astype(np.float64)
-    gamma_corrected = exposure.adjust_gamma(f, gamma=.3, gain=1)
+    gamma_corrected = exposure.adjust_gamma(f, gamma=.5, gain=1)
     return gamma_corrected
 
 
@@ -83,8 +81,8 @@ print("#*********************Iterating in Source path**************************#
 for file in os.listdir(source_path):
     if file.endswith(".tif"):
         #print(file)
-        #Read Voxel_x, Voxel_y from individual slices, which shall be used later!
-        w, h = read_voxel_size(os.path.join(source_path, file))
+        #Read Voxel_x (V_x), Voxel_y (V_y) from individual slices, which shall be used later for setting voxel depth
+        V_x, V_y = read_voxel_size(os.path.join(source_path, file))
         #print(w,h)
         if re.search("_ch0{2}", str(file)):
             ref_counter += 1
@@ -110,60 +108,61 @@ print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
 
 
 #Convert these image collection object (sequential images) into a single image
-ref_image = io.concatenate_images(ref_image_collection)
-print(f"The ref_image has dimensions : {ref_image.shape}")
+ref_image_stack = io.concatenate_images(ref_image_collection)
+tiff.imwrite(os.path.join(data_path, 'ref_stack.tif'), ref_image_stack)
 #ref_image set w,h, newz
 
-sig_image = io.concatenate_images(sig_image_collection)
-print(f"The sig_image has dimensions : {sig_image.shape}")
-
-#Saving these images via mimwrite from imageio
-imageio.mimwrite(os.path.join(data_path, "ref_image" + ".tif"), ref_image)
-imageio.mimwrite(os.path.join(data_path, "sig_image" + ".tif"), sig_image)
+sig_image_stack = io.concatenate_images(sig_image_collection)
+#print(f"The sig_image has dimensions : {sig_image_stack.shape}")
+tiff.imwrite(os.path.join(data_path, 'sig_stack.tif'), sig_image_stack)
 
 
 for item in os.listdir(data_path):
     if item.endswith(".tif"):
-        print("#*********************Iterating in Data path****************************#")
-        print("FILENAME:", os.path.join(data_path, item))
-        image = image_details(os.path.join(data_path, item))
-        image8 = convert_to_8bit(image)
-        imageCE = ce(image8)
+        g = tiff.imread(os.path.join(data_path, item))
+        #d, x, y = g.shape
+        #g = np.reshape(g, (x, y, d))
+        print(f"The file {item} has dimensions : {g.shape} and is of type: {g.dtype} ")
+        CE_image = ce(g)
+        print(f'Creating file {item} ...')
+        tiff.imwrite(os.path.join(data_path, f"{item}"), CE_image.astype('uint8'))
+
+for item in os.listdir(data_path):
+    if item.endswith(".tif"):
         # Setting Voxel Size
         imageVS = set_voxel_depth(os.path.join(data_path, item))
-        print(imageVS)
+        ###WORKS till here!. just need to work on saving the imageVS properly by overwiting the CE_image.
+        #tiff.imwrite(os.path.join(data_path, f"{item}"), imageVS)
 
-        print("#*************************************************#")
-        #NEXT: Need to work on saving these processed stacked images properly and quickly!
-        # plt.imsave(os.path.join(data_path, f"{item}.tiff"), imageVS, cmap="gray")
 end = time.time()
-print(end - start)
+print('total Execution Time:', end - start, 's')
 
 
-def enhance_contrast(f):
-    """
-Brightness and contrast can be adjusted using alpha (α) and beta (β), respectively.
-NOTE: (α) --> contrast control (1.0-3.0);  (β) --> Brightness control (0-100).
-The expression can be written as: g(i,j) = (α) * f(i,j) + (β).
-OpenCV already implements this as cv2.convertScaleAbs(), just provide user defined alpha and beta values.
-    :param f: alpha (α) and beta (β), f
-    :return: contrast enhanced image
-    """
-    print(f"Enhancing contrast for {f}:")
-    alpha = 1.5
-    beta = 50
-    im = cv2.imread(f, cv2.COLOR_BGR2GRAY)
-    ce_image = cv2.convertScaleAbs(im, alpha=alpha, beta=beta)
-    print("ce image shape:", ce_image.shape)
-    # converting array to image object
-    #ce_image = Image.fromarray(ce_image)
-    return ce_image
+#for item in os.listdir(data_path):
+#  if item.endswith(".tif"):
+#      pass
+#print("#*********************Iterating in Data path****************************#")
+#print("FILENAME:", os.path.join(data_path, item))
+#image = image_details(os.path.join(data_path, item))
+#image8 = convert_to_8bit(image)
+#imageCE = ce(image8)
+#print(imageCE.shape)
+#io.imsave(os.path.join(data_path, f"{item}"), imageCE)
 
+# Setting Voxel Size
+#imageVS = set_voxel_depth(os.path.join(data_path, item))
+#print(imageVS)
 
+#print("#*************************************************#")
+#NEXT: Need to work on saving these processed stacked images properly and quickly!
+# plt.imsave(os.path.join(data_path, f"{item}.tiff"), imageVS, cmap="gray")
+#with tiff.TiffFile(os.path.join(data_path, item)) as tif:
+#    for page in tif.pages:
+#        for tag in page.tags:
+#            tag_name, tag_value = tag.name, tag.value
+#            print(tag_name, tag_value)
 
-#image_data, image_header = load(f)
-#print(image_header.get_voxel_spacing())
-#print(image_header.get_offset())
-#print("********Fixing Voxel Size********")
-#image_header.set_voxel_spacing([1.0 * 10**-6, 1.0 * 10**-6])
-#print(image_header.get_voxel_spacing())
+#Saving these images via mimwrite from imageio
+#imageio.mimwrite(os.path.join(data_path, "ref_image_1" + ".tif"), ref_image_stack)
+#imageio.mimwrite(os.path.join(data_path, "sig_image_1" + ".tif"), sig_image)
+

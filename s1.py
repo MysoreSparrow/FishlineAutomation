@@ -74,9 +74,9 @@ def set_voxel_depth(f):
 def ce(f):
     #i = img_as_float(io.imread(f)).astype(np.float64)
     gamma_corrected = exposure.adjust_gamma(f, gamma=.5, gain=1)
-
-    return gamma_corrected
-
+    logarithmic_corrected = exposure.adjust_log(f, 1)
+    #return gamma_corrected
+    return logarithmic_corrected
 
 #Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
 ref_counter = sig_counter = 0

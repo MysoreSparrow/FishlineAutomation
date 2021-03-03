@@ -66,12 +66,15 @@ def set_voxel_depth(f):
     print("********Fixing Voxel Size********")
     im.SetSpacing([V_x, V_y, 1.0 * 10**-6])
     print('New voxel size:', im.GetSpacing())
+    print(im.GetPixelIDTypeAsString())
+    im = sitk.GetArrayFromImage(im)
     return im
 
 
 def ce(f):
     #i = img_as_float(io.imread(f)).astype(np.float64)
     gamma_corrected = exposure.adjust_gamma(f, gamma=.5, gain=1)
+
     return gamma_corrected
 
 
@@ -126,13 +129,9 @@ for item in os.listdir(data_path):
         CE_image = ce(g)
         print(f'Creating file {item} ...')
         tiff.imwrite(os.path.join(data_path, f"{item}"), CE_image.astype('uint8'))
-
-for item in os.listdir(data_path):
-    if item.endswith(".tif"):
-        # Setting Voxel Size
         imageVS = set_voxel_depth(os.path.join(data_path, item))
-        ###WORKS till here!. just need to work on saving the imageVS properly by overwiting the CE_image.
-        #tiff.imwrite(os.path.join(data_path, f"{item}"), imageVS)
+        print(f'Creating file after setting up VD{item} ...')
+        tiff.imwrite(os.path.join(data_path, f"VD_{item}"), imageVS)
 
 end = time.time()
 print('total Execution Time:', end - start, 's')

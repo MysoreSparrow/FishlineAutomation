@@ -14,14 +14,15 @@ from skimage.transform import rotate
 from skimage import io
 from scipy import ndimage
 import SimpleITK as sitk
+from PIL import Image
 start = time.time()
-data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/test/'
+data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
 
 
 # angle in degrees
 def rotate_image(mat, angle):
     #height, width = mat.shape[1], mat.shape[2]
-    height, width  = mat.shape
+    height, width = mat.shape
     print(height, width)
     image_center = (width / 2, height / 2)
     print(image_center)
@@ -66,11 +67,8 @@ def rotateAndScale(img, angle):
     return rotatedImg
 
 
-theta = float(input('Enter the angle by which image to be rotated:'))
-
-
 def _rotate(i, angle):
-    return rotate(i, -angle, preserve_range=True)
+    return rotate(i, angle)
 
 
 def _r(src, angle, scale=1.):
@@ -87,34 +85,52 @@ def _r(src, angle, scale=1.):
     rot_move = np.dot(rot_mat, np.array([(nw-w)*0.5, (nh-h)*0.5,0]))
     # the move only affects the translation, so update the translation
     # part of the transform
-    rot_mat[0,2] += rot_move[0]
-    rot_mat[1,2] += rot_move[1]
+    rot_mat[0, 2] += rot_move[0]
+    rot_mat[1, 2] += rot_move[1]
     rotated_mat = cv2.warpAffine(src, rot_mat, (int(math.ceil(nw)), int(math.ceil(nh))), flags=cv2.INTER_LANCZOS4)
     return rotated_mat
 
+
+theta = float(input('Enter the angle by which image to be rotated:'))
 for item in os.listdir(data_path):
     if item.endswith(".tif"):
         print(item)
         #image = tiff.imread(os.path.join(data_path, file)).astype('uint8')
         #image = tiff.imread(os.path.join(data_path, item))
-        image = cv2.imread(os.path.join(data_path, item))
-        #rotated_image = rotate_image(image, theta)
-        #rotated_image = rotateAndScale(image, theta)
-        rotated_image = _r(image, theta)
-        #print(type(rotated_image))
+        #d, y, x = image.shape
+        #print(image.shape)
+
+        #1. Iterate through each file as a tiff file.
+        #2. split into individual pages //Unstacking
+        #3. rotate each page and save teh rotated_page into a new list
+        #4. restack each array from teh list
+        rotated_page_list = []
+        with tiff.TiffFile(os.path.join(data_path, item)) as tif:
+            print(f' Processing file {tif}...')
+            for page in tif.pages:
+                im = page.asarray()
+                #print('im shape:', im.shape)
+                rotated_page = rotateAndScale(im, theta)
+                rotated_page_list.append(rotated_page)
+            rotated_image = np.dstack(rotated_page_list)
+            print(f'Creating Rotated Image: rotated_{item}')
+            tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image.astype('uint8'))
+
+
+        #tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image.astype('uint8'))
+
+        #with SKIMAGE
         #rotated_image = _rotate(image, theta)
+        #with IMUTILS
         #rotated_image = imutils.rotate_bound(image, theta)
-        tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image)
-
-        #image = io.imread(os.path.join(data_path, item))
-        #rotated = ndimage.rotate(image, angle=theta, mode='nearest')
-
-        #i = sitk.ReadImage(os.path.join(data_path, item))
-        #print(i)
-        #print(i.GetDirection())
-        #tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated)
-
-
 end = time.time()
 
-print(end - start , 'secs')
+print(end - start, 'secs')
+
+#image = io.imread(os.path.join(data_path, item))
+#rotated = ndimage.rotate(image, angle=theta, mode='nearest')
+
+#i = sitk.ReadImage(os.path.join(data_path, item))
+#print(i)
+#print(i.GetDirection())
+#tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated)

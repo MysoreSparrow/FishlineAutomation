@@ -43,7 +43,7 @@ def rotate_image(mat, angle):
 
 
 def rotateAndScale(img, angle):
-    scaleFactor = 0.5
+    scaleFactor = 1
     (oldY, oldX, ) = img.shape
     #note: numpy uses (y,x) convention but most OpenCV functions use (x,y)
     M = cv2.getRotationMatrix2D(center=(oldX/2,oldY/2), angle=angle, scale=scaleFactor) #rotate about center of image.
@@ -52,7 +52,7 @@ def rotateAndScale(img, angle):
     newX,newY = oldX*scaleFactor,oldY*scaleFactor
     #include this if you want to prevent corners being cut off
     r = np.deg2rad(angle)
-    newX,newY = (abs(np.sin(r)*newY) + abs(np.cos(r)*newX),abs(np.sin(r)*newX) + abs(np.cos(r)*newY))
+    newX, newY = (abs(np.sin(r)*newY) + abs(np.cos(r)*newX),abs(np.sin(r)*newX) + abs(np.cos(r)*newY))
 
     #the warpAffine function call, below, basically works like this:
     # 1. apply the M transformation on each pixel of the original image
@@ -65,10 +65,6 @@ def rotateAndScale(img, angle):
 
     rotatedImg = cv2.warpAffine(img, M, dsize=(int(newX),int(newY)))
     return rotatedImg
-
-
-def _rotate(i, angle):
-    return rotate(i, angle)
 
 
 def _r(src, angle, scale=1.):
@@ -91,46 +87,42 @@ def _r(src, angle, scale=1.):
     return rotated_mat
 
 
+def tiff_unstackAndrestack(f):
+    '''
+    #1. Iterate through each file as a tiff file.
+    #2. split into individual pages //Unstacking
+    #3. rotate each page and save the rotated_page into a new list
+    #4. restack each array from the list
+    :param f: tiff file
+    :return: rotated_image_stack
+    '''
+    with tiff.TiffFile(f) as tif:
+        print(f' Processing file {tif}...')
+        for page in tif.pages:
+            im = page.asarray()
+            # print('im shape:', im.shape)
+            rotated_page = rotateAndScale(im, theta)
+            rotated_page_list.append(rotated_page)
+        rotated_image_stack = np.dstack(rotated_page_list)
+    return rotated_image_stack.astype('uint8')
+
+
 theta = float(input('Enter the angle by which image to be rotated:'))
 for item in os.listdir(data_path):
     if item.endswith(".tif"):
         print(item)
-        #image = tiff.imread(os.path.join(data_path, file)).astype('uint8')
-        #image = tiff.imread(os.path.join(data_path, item))
-        #d, y, x = image.shape
-        #print(image.shape)
-
-        #1. Iterate through each file as a tiff file.
-        #2. split into individual pages //Unstacking
-        #3. rotate each page and save teh rotated_page into a new list
-        #4. restack each array from teh list
         rotated_page_list = []
-        with tiff.TiffFile(os.path.join(data_path, item)) as tif:
-            print(f' Processing file {tif}...')
-            for page in tif.pages:
-                im = page.asarray()
-                #print('im shape:', im.shape)
-                rotated_page = rotateAndScale(im, theta)
-                rotated_page_list.append(rotated_page)
-            rotated_image = np.dstack(rotated_page_list)
-            print(f'Creating Rotated Image: rotated_{item}')
-            tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image.astype('uint8'))
+        rotated_image = tiff_unstackAndrestack(os.path.join(data_path, item))
+        print(f'Creating Rotated Image: rotated_{item}')
+        tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image)
 
 
-        #tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated_image.astype('uint8'))
-
-        #with SKIMAGE
-        #rotated_image = _rotate(image, theta)
-        #with IMUTILS
-        #rotated_image = imutils.rotate_bound(image, theta)
+#with SKIMAGE
+#rotated_image = _rotate(image, theta)
+#with IMUTILS
+#rotated_image = imutils.rotate_bound(image, theta)
 end = time.time()
-
 print(end - start, 'secs')
 
 #image = io.imread(os.path.join(data_path, item))
 #rotated = ndimage.rotate(image, angle=theta, mode='nearest')
-
-#i = sitk.ReadImage(os.path.join(data_path, item))
-#print(i)
-#print(i.GetDirection())
-#tiff.imwrite(os.path.join(data_path, f"rotated_{item}"), rotated)

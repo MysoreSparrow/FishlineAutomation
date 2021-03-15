@@ -30,9 +30,7 @@ def tiff_unstackAndrestack(f):
     #4. restack each array from the list
     '''
     with tiff.TiffFile(f, mode='r+b') as tif:
-        print(f' Processing file {tif}...')
-        #tag_XR = tif.pages[0].tags['XResolution'].overwrite(tif, (V_x,V_y))
-        #print(tag_XR)
+        print(f' Processing {tif} for rotation...')
         for page in tif.pages:
             rotated_page = _rotate(page.asarray(), theta)
             rotated_page_list.append(rotated_page)
@@ -40,22 +38,13 @@ def tiff_unstackAndrestack(f):
     return rotated_image_stack.astype('uint8')
 
 
-def _t(f):
-    with tiff.TiffFile(f, mode='r+b') as tif:
-        print(f' Processing file {tif}...')
-        for page in tif.pages:
-            tag = tif.pages[0].tags['ImageDescription']
-            print(f'{tag.name}, {tag.value}')
-        # tif_tags = {}
-        # for tag in tif.pages[0].tags.values():
-        #    name, value = tag.name, tag.value
-        #    print(name, value)
-        #    tif_tags[name] = value
-        # print(tif_tags)
-    return tif
+def split_and_rename(f):
+    filename, ext = f.split('.')
+    _first, _last = filename.split('_', 1)
+    print(_first, _last, ext)
+    return _first, ext
 
 
-line_name = input("enter line_name:")
 for item in os.listdir(line_path):
     if item.endswith(".tif"):
         print(f'Image stack to be rotated: {item}')
@@ -63,14 +52,9 @@ for item in os.listdir(line_path):
         rotated_page_list = []
         rotated_image = tiff_unstackAndrestack(os.path.join(line_path, item))
         print(f'Creating Rotated Image: rotated_{item}')
-        tiff.imwrite(os.path.join(line_path, f"{line_name}_rotated_{item}"), rotated_image)
-
-        #file = _t(os.path.join(data_path, item))
+        tiff.imwrite(os.path.join(line_path, f"{item}"), rotated_image)
 
 #**********Final Saving of Images to respective folders********
-line_name = input("enter line_name:")
-
-
 print('Final Saving of Images to respective folders!')
 processed_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/processed/'
 processed_for_average_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22' \
@@ -90,17 +74,13 @@ for item in os.listdir(line_path):
         print(f'Image stack to be saved: {item}')
         # Read the data back from file
         readdata = tiff.imread(os.path.join(line_path, item))
-        print(readdata.shape, readdata.dtype)
-        stackname = os.path.splitext(item)[0]
-       #print(stackname)
-        nrrd.write(os.path.join(processed_path, f"{stackname}_{tag_name}.nrrd"), readdata,  index_order='C')
+        name, ext = split_and_rename(item)
+        nrrd.write(os.path.join(processed_path, f"{name}_{tag_name}.nrrd"), readdata,  index_order='C')
     if item.endswith('.tif') and re.search("sig", str(item)):
         # Read the data back from file
         readdata = tiff.imread(os.path.join(line_path, item))
-        print(readdata.shape, readdata.dtype)
-        stackname = os.path.splitext(item)[0]
-        #print(stackname)
-        nrrd.write(os.path.join(processed_path, f"{stackname}_GFP.nrrd"), readdata, index_order='C')
+        name, ext = split_and_rename(item)
+        nrrd.write(os.path.join(processed_path, f"{name}_GFP.nrrd"), readdata, index_order='C')
 
 
 end = time.time()

@@ -11,7 +11,7 @@
 #DONE: check voxel depth and set voxel depth to 1 while retaining the other two numbers to be the same.
 #DONE: check Image type or PixelIDType and set it to 8 bit integer type
 #DONE: Enhance Contrast of the image
-#TODO: Save Image after processing
+#DONE: Save Image after processing
 #TODO: Rotate image
 #TODO: Save after processing as both .nrrd and .tiff in respective folders along with original
 
@@ -21,9 +21,9 @@ import re
 import shutil
 from skimage import io, exposure
 import time
-import numpy as np
 import SimpleITK as sitk
 import tifffile as tiff
+import imageio
 
 start = time.time()
 source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/'
@@ -65,6 +65,7 @@ def set_voxel_depth(f):
     print('Current voxel size:', im.GetSpacing())
     print("********Fixing Voxel Size********")
     im.SetSpacing([V_x, V_y, 1.0 * 10**-6])
+    #Need depth to be in microns. The basic units in sitk is set in (mm) by default.
     print('New voxel size:', im.GetSpacing())
     print(im.GetPixelIDTypeAsString())
     im = sitk.GetArrayFromImage(im)
@@ -73,10 +74,11 @@ def set_voxel_depth(f):
 
 def ce(f):
     #i = img_as_float(io.imread(f)).astype(np.float64)
-    gamma_corrected = exposure.adjust_gamma(f, gamma=.5, gain=1)
+    #gamma_corrected = exposure.adjust_gamma(f, gamma=.5, gain=1)
     logarithmic_corrected = exposure.adjust_log(f, 1)
     #return gamma_corrected
     return logarithmic_corrected
+
 
 #Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
 ref_counter = sig_counter = 0
@@ -86,7 +88,7 @@ for file in os.listdir(source_path):
         #print(file)
         #Read Voxel_x (V_x), Voxel_y (V_y) from individual slices, which shall be used later for setting voxel depth
         V_x, V_y = read_voxel_size(os.path.join(source_path, file))
-        #print(w,h)
+        #print(V_x, V_y)
         if re.search("_ch0{2}", str(file)):
             ref_counter += 1
             #print(f"ref_counter= {ref_counter}")
@@ -120,48 +122,41 @@ sig_image_stack = io.concatenate_images(sig_image_collection)
 tiff.imwrite(os.path.join(data_path, 'sig_stack.tif'), sig_image_stack)
 
 
+def set_VD(f):
+    with tiff.TiffFile(f, mode='r+b') as tif:
+        print(f' Processing file {tif}...')
+        for page in tif.pages:
+            tag = tif.pages[0].tags['ImageDescription']
+            print(f'{tag.name}, {tag.value}')
+        # tif_tags = {}
+        # for tag in tif.pages[0].tags.values():
+        #    name, value = tag.name, tag.value
+        #    print(name, value)
+        #    tif_tags[name] = value
+        # print(tif_tags)
+    return tif
+
+
 for item in os.listdir(data_path):
     if item.endswith(".tif"):
         g = tiff.imread(os.path.join(data_path, item))
         #d, x, y = g.shape
         #g = np.reshape(g, (x, y, d))
         print(f"The file {item} has dimensions : {g.shape} and is of type: {g.dtype} ")
+
         CE_image = ce(g)
         print(f'Creating file {item} ...')
         tiff.imwrite(os.path.join(data_path, f"{item}"), CE_image.astype('uint8'))
+
         imageVS = set_voxel_depth(os.path.join(data_path, item))
         print(f'Creating file after setting up VD{item} ...')
-        tiff.imwrite(os.path.join(data_path, f"VD_{item}"), imageVS)
+        tiff.imwrite(os.path.join(data_path, f"{item}"), imageVS.astype('uint8'))
+        # tiff.imwrite(os.path.join(data_path, f"{item}"),  CE_image.astype('uint8'), metadata = {'spacing': 1.0 *
+        # 10**-6,'unit': 'um'})
+        print('*********************************************************')
+
 
 end = time.time()
 print('total Execution Time:', end - start, 's')
 
-
-#for item in os.listdir(data_path):
-#  if item.endswith(".tif"):
-#      pass
-#print("#*********************Iterating in Data path****************************#")
-#print("FILENAME:", os.path.join(data_path, item))
-#image = image_details(os.path.join(data_path, item))
-#image8 = convert_to_8bit(image)
-#imageCE = ce(image8)
-#print(imageCE.shape)
-#io.imsave(os.path.join(data_path, f"{item}"), imageCE)
-
-# Setting Voxel Size
-#imageVS = set_voxel_depth(os.path.join(data_path, item))
-#print(imageVS)
-
-#print("#*************************************************#")
-#NEXT: Need to work on saving these processed stacked images properly and quickly!
-# plt.imsave(os.path.join(data_path, f"{item}.tiff"), imageVS, cmap="gray")
-#with tiff.TiffFile(os.path.join(data_path, item)) as tif:
-#    for page in tif.pages:
-#        for tag in page.tags:
-#            tag_name, tag_value = tag.name, tag.value
-#            print(tag_name, tag_value)
-
-#Saving these images via mimwrite from imageio
-#imageio.mimwrite(os.path.join(data_path, "ref_image_1" + ".tif"), ref_image_stack)
-#imageio.mimwrite(os.path.join(data_path, "sig_image_1" + ".tif"), sig_image)
-
+# print(sitk.ReadImage(os.path.join(data_path, item)))

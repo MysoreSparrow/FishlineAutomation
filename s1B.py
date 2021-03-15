@@ -86,14 +86,21 @@ if not os.path.exists(processed_for_average_path):
     os.makedirs(processed_for_average_path, exist_ok=True)
 
 for item in os.listdir(line_path):
-    if item.endswith(".tif") and re.search("_ref_", str(item)):
+    if item.endswith(".tif") and re.search("ref", str(item)):
         print(f'Image stack to be saved: {item}')
         # Read the data back from file
         readdata = tiff.imread(os.path.join(line_path, item))
         print(readdata.shape, readdata.dtype)
         stackname = os.path.splitext(item)[0]
-        print(stackname)
+       #print(stackname)
         nrrd.write(os.path.join(processed_path, f"{stackname}_{tag_name}.nrrd"), readdata,  index_order='C')
+    if item.endswith('.tif') and re.search("sig", str(item)):
+        # Read the data back from file
+        readdata = tiff.imread(os.path.join(line_path, item))
+        print(readdata.shape, readdata.dtype)
+        stackname = os.path.splitext(item)[0]
+        #print(stackname)
+        nrrd.write(os.path.join(processed_path, f"{stackname}_GFP.nrrd"), readdata, index_order='C')
 
 
 end = time.time()

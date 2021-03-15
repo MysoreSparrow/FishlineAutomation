@@ -22,7 +22,6 @@ import shutil
 import time
 import SimpleITK as sitk
 import tifffile as tiff
-from medpy.io import load
 from skimage import io, exposure
 import numpy as np
 from scipy import ndimage
@@ -34,6 +33,7 @@ dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_b
 dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/sig'
 data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
 line_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
+
 
 def image_details(f):
     print("********Image Details**************")
@@ -63,31 +63,10 @@ def read_voxel_size(f):
     return width, height
 
 
-def set_voxel_depth(f):
-    im = sitk.ReadImage(f)
-    print('Current voxel size:', im.GetSpacing())
-    print("********Fixing Voxel Size********")
-    im.SetSpacing([V_x, V_y, 1.0 * 10 ** -6])
-    # Need depth to be in microns. The basic units in sitk is set in (mm) by default.
-    print('New voxel size:', im.GetSpacing())
-    print(im.GetPixelIDTypeAsString())
-    im = sitk.GetArrayFromImage(im)
-    return im
-
-
 def ce(f):
     # i = img_as_float(io.imread(f)).astype(np.float64)
     logarithmic_corrected = exposure.adjust_log(f, 1)
     return logarithmic_corrected
-
-
-def set_VD1(f):
-    image_data, image_header = load(f)
-    print(image_data.shape, image_data.dtype, image_header)
-    print('voxel spacing:', image_header.get_voxel_spacing())
-    # image_header.set_voxel_spacing((V_x, V_y, 1.0 * 10 ** -6))
-    # print('new voxel spacing:', image_header.get_voxel_spacing())
-    return image_data, image_header
 
 
 def _rotate(src, angle):
@@ -121,6 +100,8 @@ def split_and_rename(f):
     return _first
 
 
+line_name = input("enter line_name:")
+tag_name = input("Enter tag name or name of the stain used:")
 # Check if each f belongs to Ch00 or Ch01 and split Channels( move files to respective folders)
 ref_counter = sig_counter = V_x = V_y = 0
 print("#*********************Iterating in Source path**************************#")
@@ -149,7 +130,7 @@ print(f'The ref_image_collection details: {len(ref_image_collection)} frames')
 sig_image_collection = io.ImageCollection(dest_path1 + '/*.tif')
 print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
 
-line_name = input("enter line_name:")
+
 # Convert these image collection object (sequential images) into a single image
 ref_image_stack = io.concatenate_images(ref_image_collection)
 tiff.imwrite(os.path.join(data_path, f'{line_name}_refstack.tif'), ref_image_stack)
@@ -160,6 +141,7 @@ tiff.imwrite(os.path.join(data_path, f'{line_name}_sigstack.tif'), sig_image_sta
 
 for item in os.listdir(data_path):
     if item.endswith(".tif"):
+
         # ****Contrast Enhancement, 8bit conversion, fixing voxel Depth******#
         g = tiff.imread(os.path.join(data_path, item))
         print(f"The file {item} has dimensions : {g.shape} and is of type: {g.dtype} ")
@@ -174,7 +156,9 @@ for item in os.listdir(data_path):
         rotated_page_list = []
         rotated_image = tiff_unstackAndrestack(os.path.join(line_path, item))
         print(f'Creating Rotated Image: rotated_{item}')
-        tiff.imwrite(os.path.join(line_path, f"{item}"), rotated_image)
+        with tiff.TiffWriter(os.path.join(line_path, f"{item}"), imagej=True) as tifw:
+            tifw.write(rotated_image.astype('uint8'), resolution=(1/V_x, 1/V_y), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+        #tiff.imwrite(os.path.join(line_path, f"{item}"), rotated_image)
         print('*********************************************************')
 
 
@@ -184,7 +168,7 @@ processed_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/20
 processed_for_average_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22' \
                       f'/processed_for_average/'
 
-tag_name = input("Enter tag name or name of the stain used:")
+
 if not os.path.exists(processed_path):
     print(f'Creating {processed_path}')
     os.makedirs(processed_path, exist_ok=True)
@@ -200,13 +184,21 @@ for item in os.listdir(line_path):
         readdata = tiff.imread(os.path.join(line_path, item))
         name = split_and_rename(item)
         nrrd.write(os.path.join(processed_path, f"{name}_{tag_name}.nrrd"), readdata,  index_order='C')
-        tiff.imwrite(os.path.join(processed_for_average_path, f"{name}_{tag_name}.tif"), readdata)
+        #tiff.imwrite(os.path.join(processed_for_average_path, f"{name}_{tag_name}.tif"), readdata)
+        with tiff.TiffWriter(os.path.join(processed_for_average_path, f"{name}_{tag_name}.tif"), imagej=True) as tifw:
+            tifw.write(readdata.astype('uint8'), resolution=(1/V_x, 1/V_y), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
     if item.endswith('.tif') and re.search("sig", str(item)):
         # Read the data back from file
         readdata = tiff.imread(os.path.join(line_path, item))
         name = split_and_rename(item)
         nrrd.write(os.path.join(processed_path, f"{name}_GFP.nrrd"), readdata, index_order='C')
-        tiff.imwrite(os.path.join(processed_for_average_path, f"{name}_GFP.tif"), readdata)
+        with tiff.TiffWriter(os.path.join(processed_for_average_path, f"{name}_GFP.tif"), imagej=True) as tifw:
+            tifw.write(readdata.astype('uint8'), resolution=(1 / V_x, 1 / V_y), metadata={'spacing': 1.0,
+                                                                                          'unit': 'um', 'axes': 'ZYX'})
 
 end = time.time()
 print('total Execution Time:', end - start, 's')
+
+#with tiff.TiffWriter(os.path.join(data_path, item), imagej=True) as tifw:
+#    tifw.write(CE_image.astype('uint8'), resolution=(1 / V_x, 1 / V_y), metadata={'spacing': 1.0, 'unit': 'um',
+ #                                                                                 'axes': 'ZYX'})

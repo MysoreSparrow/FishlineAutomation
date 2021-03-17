@@ -26,13 +26,18 @@ from skimage import io, exposure
 import numpy as np
 from scipy import ndimage
 import nrrd
+import glob
 
 start = time.time()
+folder_index = 0
 source_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/'
-dest_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/ref'
-dest_path1 = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/sig'
-data_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
+
 line_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/'
+processed_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/processed/'
+processed_for_average_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22' \
+                      f'/processed_for_average/'
+ref_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/ref'
+sig_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/original/201126_bhlhe22/1/sig'
 
 
 def image_details(f):
@@ -115,39 +120,39 @@ for file in os.listdir(source_path):
             ref_counter += 1
             # print(f"ref_counter= {ref_counter}")
             # print("ref f:", f)
-            shutil.copy(f"{source_path}/{file}", dest_path)
+            shutil.copy(f"{source_path}/{file}", ref_path)
         elif re.search("_ch01{1}", str(file)):
             sig_counter += 1
             # print(f"sig_counter = {sig_counter}")
             # print(f"sig f:{f}")
-            shutil.copy(f"{source_path}/{file}", dest_path1)
+            shutil.copy(f"{source_path}/{file}", sig_path)
         else:
             print("Its a Folder. Unwanted/Unrecognized file format.")
 
 # Load images sequentially as per respective channels using skimage imageCollection
-ref_image_collection = io.ImageCollection(dest_path + '/*.tif')
+ref_image_collection = io.ImageCollection(ref_path + '/*.tif')
 print(f'The ref_image_collection details: {len(ref_image_collection)} frames')
-sig_image_collection = io.ImageCollection(dest_path1 + '/*.tif')
+sig_image_collection = io.ImageCollection(sig_path + '/*.tif')
 print(f'The sig_image_collection details: {len(sig_image_collection)} frames')
 
 
 # Convert these image collection object (sequential images) into a single image
 ref_image_stack = io.concatenate_images(ref_image_collection)
-tiff.imwrite(os.path.join(data_path, f'{line_name}_refstack.tif'), ref_image_stack)
+tiff.imwrite(os.path.join(line_path, f'{line_name}_refstack.tif'), ref_image_stack)
 
 sig_image_stack = io.concatenate_images(sig_image_collection)
-tiff.imwrite(os.path.join(data_path, f'{line_name}_sigstack.tif'), sig_image_stack)
+tiff.imwrite(os.path.join(line_path, f'{line_name}_sigstack.tif'), sig_image_stack)
 
 
-for item in os.listdir(data_path):
+for item in os.listdir(line_path):
     if item.endswith(".tif"):
 
         # ****Contrast Enhancement, 8bit conversion, fixing voxel Depth******#
-        g = tiff.imread(os.path.join(data_path, item))
+        g = tiff.imread(os.path.join(line_path, item))
         print(f"The file {item} has dimensions : {g.shape} and is of type: {g.dtype} ")
         CE_image = ce(g)
         print(f'Creating file {item} ...')
-        with tiff.TiffWriter(os.path.join(data_path, item), imagej=True) as tifw:
+        with tiff.TiffWriter(os.path.join(line_path, item), imagej=True) as tifw:
             tifw.write(CE_image.astype('uint8'), resolution=(1/V_x, 1/V_y), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
 
         #***********Rotation*********************************#
@@ -164,11 +169,6 @@ for item in os.listdir(data_path):
 
 #**********Final Saving of Images to respective folders********
 print('Final Saving of Images to respective folders!')
-processed_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22/processed/'
-processed_for_average_path = f'C:/Users/keshavgubbi/Desktop/ATLAS/S1-ImageProcessing/data/201126_bhlhe22' \
-                      f'/processed_for_average/'
-
-
 if not os.path.exists(processed_path):
     print(f'Creating {processed_path}')
     os.makedirs(processed_path, exist_ok=True)

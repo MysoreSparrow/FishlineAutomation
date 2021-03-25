@@ -30,6 +30,7 @@ for file in os.listdir(c_path):
             a1 = np.transpose(np.squeeze(imgarray))
             print('transpose shape:', a1.shape)
             #(801, 1521, 370)
+            #Q: Why does the third dimension still have 370..isnt this is each slice?
             a2 = np.stack(a1, axis=0)
             print(a2.shape)
             print('############################')

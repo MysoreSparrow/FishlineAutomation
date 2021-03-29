@@ -4,8 +4,8 @@ import numpy as np
 from aicspylibczi import CziFile
 import time
 
-c_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1/data/czidata/'
-saving_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1/data/czidata/test/'
+c_path: str = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1/data/czidata/'
+original_path: str = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1/data/czidata/original/'
 
 # DONE: Read CZI file from a given folder.
 # DONE: Read metadata for each file and based on channel number split into separate channels.
@@ -15,6 +15,11 @@ saving_path = 'C:/Users/keshavgubbi/Desktop/ATLAS/S1/data/czidata/test/'
 #     with tiff.TiffFile(f, mode='r+b') as tif:
 #         tiff.imwrite(os.path.join(c_path, f'{name}_ch{ch_num}.tif'), image_list_stack)
 #
+
+if not os.path.exists(original_path):
+    print(f'Creating {original_path}')
+    os.makedirs(original_path, exist_ok=True)
+
 start = time.time()
 for file in os.listdir(c_path):
     print(file)
@@ -25,7 +30,7 @@ for file in os.listdir(c_path):
     # print(czi.dims_shape())  # shape of the data over those dims
 
     for ch_num in range(*czi.dims_shape()[0]['C']):
-        print('ch_num:',ch_num)
+        print('ch_num:', ch_num)
         #imgarray, shp1 = czi.read_image(B=0, S=0, C=ch_num, T=0)
         # this will give a 3d array when squeezed, ZYX
         #print(imgarray.shape)
@@ -41,8 +46,9 @@ for file in os.listdir(c_path):
             # print(len(image_list))
             image_list_stack = np.stack(image_list)
             #print(image_list_stack.shape)
-            #tiff.imwrite(os.path.join(c_path, f'{name}_ch{ch_num}.tif'), image_list_stack)
-            with tiff.TiffWriter(os.path.join(c_path, f'{name}_ch{ch_num}.tif')) as tifw:
+            #tiff.imwrite(os.path.join(original_path, f'{name}_ch{ch_num}.tif'), image_list_stack)
+            ####################################################################
+            with tiff.TiffWriter(os.path.join(original_path, f'{name}_ch{ch_num}.tif')) as tifw:
                 tifw.write(image_list_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
 
 #, imagej=True, bigtiff=True

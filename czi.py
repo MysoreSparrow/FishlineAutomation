@@ -69,10 +69,11 @@ for file in os.listdir(c_path):
                 channel_image_stack = np.stack(image_list)
                 print(channel_image_stack.shape)
 
-            # with tiff.TiffWriter(os.path.join(original_path, f'{name}_ch{ch_num}.tif')) as tifw:
-            #     tifw.write(czi_split_image.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+                #tiff.imwrite(os.path.join(original_path, f'{name}_ch{ch_num}.tif'), channel_image_stack)
+                # with tiff.TiffWriter(os.path.join(original_path, f'{name}_ch{ch_num}.tif')) as tifw:
+                #     tifw.write(czi_split_image.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
                 with tiff.TiffWriter(os.path.join(original_path, f'{name}_ch{ch_num}.tif')) as tifw:
-                    tifw.write(channel_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+                    tifw.save(channel_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
 
 #, imagej=True, bigtiff=True
 # end = time.time()

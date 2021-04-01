@@ -40,7 +40,7 @@ for file in os.listdir(c_path):
                 # with tiff.TiffWriter(os.path.join(original_path, f'{name}_ch{ch_num}.tif')) as tifw:
                 #     tifw.write(channel_image_stack.astype('uint8'))
 
-                if ref_ch_num == 0 and ch_num == 0:
+                if ref_ch_num == ch_num:
                     with tiff.TiffWriter(os.path.join(original_path, f'{name}_ref.tif')) as tifw:
                         tifw.write(channel_image_stack.astype('uint8'))
                 else:

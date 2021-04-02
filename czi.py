@@ -24,19 +24,21 @@ for file in os.listdir(c_path):
         czi = CziFile(os.path.join(c_path, file))
         max_channels = range(*czi.dims_shape()[0]['C'])
         max_slices = range(*czi.dims_shape()[0]['Z'])
-        image_list = []
-        #for ch_num, z_plane in zip(max_channels, max_slices):
         for ch_num in max_channels:
+            image_list = []
             for z_plane in max_slices:
-                print('file:', file, 'ch_num:', ch_num, 'z_plane:', z_plane)
+                print('file:', file, ', ch_num:', ch_num, ', z_plane:', z_plane)
                 imgarray, shp = czi.read_image(B=0, S=0, C=ch_num, T=0, Z=z_plane)
-                image = np.squeeze(imgarray)
-                image_list.append(image)
-                channel_image_stack = np.stack(image_list)
+                image_list.append(np.squeeze(imgarray))
+                #print('len:',len(image_list))
+                # with tiff.TiffWriter(os.path.join(original_path, f'{name}_{ch_num}.tif')) as tifw:
+                #     tifw.write(np.stack(image_list).astype('uint8'))
 
                 if ref_ch_num == ch_num:
                     with tiff.TiffWriter(os.path.join(original_path, f'{name}_ref.tif')) as tifw:
-                        tifw.write(channel_image_stack.astype('uint8'))
+                        print(f'Adding slice {z_plane} to {name}_ref.tif')
+                        tifw.write(np.stack(image_list).astype('uint8'))
                 else:
                     with tiff.TiffWriter(os.path.join(original_path, f'{name}_sig.tif')) as tifw:
-                        tifw.write(channel_image_stack.astype('uint8'))
+                        print(f'Adding slice {z_plane} {name}_sig.tif')
+                        tifw.write(np.stack(image_list).astype('uint8'))

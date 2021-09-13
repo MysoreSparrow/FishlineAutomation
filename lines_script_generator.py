@@ -23,10 +23,19 @@ input = ["input1=/ptmp/${USER}/avg_templ/live/images/high_res/"f"${date}_""${SLU
          "input2=/ptmp/${USER}/avg_templ/live/images/high_res/"f"${date}_""${SLURM_ARRAY_TASK_ID}"f"_GFP.nrrd \n"]
 
 
-L10 = ["srun ${ANTSPATH}/antsMultivariateTemplateConstruction2.sh \ \n", "-d 3 \ \n", "-o ${outputPath}/T_ \ \n",
-      "-i 4 \ \n", "-g 0.2 \ \n", "-j 32 \ \n", "-v 500 \ \n", "-c 2 \ \n", "-k 2 \ \n", "-w 1x1 \ \n", "-f 12x8x4x2 \n",
-      "-s 4x3x2x1 \ \n", "-n 0 \ \n", "-r 1 \ \n", "-l 1 \ \n", "-z ${target1} \ \n", "-z ${target2} \ \n",
-      "-m CC[2] \ \n", "-t SyN[0.05,6,0.5] \ \n", "${inputPath} \n", "\n"]
+L10 = ["srun $antsbin/antsRegistration -d 3 \ \n", "--float 1 \ \n", "--verbose 1 \ \n",
+      "-o [${output1},${output2}] \ \n", "--interpolation WelchWindowedSinc \ \n", "--use-histogram-matching 0 \ \n",
+      "-r [${template1},${input1},1] \ \n", "-t rigid[0.1] \ \n", "-m MI[${template1},${input1},1,32,Regular,0.25] \ \n",
+      "-c [200x200x200x0,1e-8,10] \ \n", "--shrink-factors 12x8x4x2 \n", "--smoothing-sigmas 4x3x2x1 \ \n",
+      "-t Affine[0.1] \ \n", "-m MI[${template1},${input1},1,32,Regular,0.25] \ \n", "-c [200x200x200x0,1e-8,10] \ \n",
+      "--shrink-factors 12x8x4x2  \ \n", "--smoothing-sigmas 4x3x2x1 \ \n", "-t SyN[0.1,6,0] \ \n",
+      "-m CC[${template1},${input1},1,2] \n", "-c [200x200x200x200x10,1e-7,10] \ \n",
+      "--shrink-factors 12x8x4x2x1 \ \n", "--smoothing-sigmas 4x3x2x1x0 \n"]
+
+
+L11 = ["$antsbin/antsApplyTransforms -d 3 \ \n", "-v 0 \ \n", "-- float \ \n", "-n WelchWindowedSinc \ \n",
+       "-i ${input2} \ \n", "-r ${template1} \ \n", "-o ${output3} \ \n", "-t ${output1}1Warp.nii.gz \ \n",
+       "-t ${output1}0GenericAffine.mat \n", " \n", "rm -rf ${input1} ${input2} \n"]
 
 # \n is placed to indicate EOL (End of Line)
 # if __name__ == '__main__':
@@ -51,10 +60,12 @@ file2.write(f"template1=/u/{USER}/templates/live_standard_{tag}.nrrd")
 file2.write("\n")
 # file2.write(f"target1=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_{tag}.tif \n")
 # file2.write(f"target2=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_GFP.tif \n")
-# file2.write("\n")
+# file2.write("\n")aa
 file2.write("\n")
 file2.write("#Run the ANTs Program: \n")
-# file2.writelines(L10)
+file2.writelines(L10)
+file2.write("\n")
+file2.writelines(L11)
 file2.close()  # to change file access modes
 
 

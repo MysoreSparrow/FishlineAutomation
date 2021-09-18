@@ -8,7 +8,7 @@
 import nibabel as nib
 import os
 import nrrd
-
+import re
 filepath = r'C:/Users/keshavgubbi/Desktop/nifti/'
 
 
@@ -20,7 +20,7 @@ def read_nifti_file(f):
     datatype = header.get_data_dtype()
     print(f'Working with Image: {file} with dtype:{datatype}, with dimensions :({width}, {height}) and has {depth} '
           f'slices')
-    print('Converting the nifti file into a 8 bit numpy array!')
+    print(f'Converting the nifti file from {datatype} into a int8(8 bit) numpy array!')
     avg_image_array = averaged_image.get_fdata()
     print(avg_image_array.shape)
     return avg_image_array.astype('uint8')
@@ -36,22 +36,22 @@ tag = input('Enter reference channel name:')
 signal = input('Enter signal channel name:')
 ref_image_name = f'{signal}_AVG_{tag}'
 sig_image_name = f'{signal}_AVG_GFP'
-Ref_channel = True
+# Ref_channel = True
 
 
 for file in os.listdir(filepath):
     if file.endswith('.nii.gz'):
-        pass
+        # Read the nifti file and convert it into a 8-bit numpy array
         averaged_image_array = read_nifti_file(file)
-        Ref_channel = input(f'Is the {file} Reference Channel?')
-        #Enter True or False for the question.
 
-        if Ref_channel is True:
-            print(f'Creating image: {ref_image_name}.nrrd')
+        # Based on name, check if the respective file in Reference/Signal and then write it into .nrrd format into
+        # same folder
+        if re.search("template0", str(file)):  # all T_template0.nii.gz files are always the reference channel files
+            print(f'Creating Reference channel image: {ref_image_name}.nrrd')
             Reference_nrrd_image = image_to_nrrd(averaged_image_array, ref_image_name)
-        elif Ref_channel is False:
-            print(f'Creating image: {sig_image_name}.nrrd')
+        elif re.search("template1", str(file)):  # all T_template1.nii.gz files are always the signal channel files
+            print(f'Creating Signal channel image: {sig_image_name}.nrrd')
             Signal_image_name = image_to_nrrd(averaged_image_array, sig_image_name)
         else:
-            print('Check total number of channels in the image!')
+            print('Unknown channel in the image. Check total number of channels in the image!')
 

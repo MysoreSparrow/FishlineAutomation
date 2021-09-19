@@ -29,10 +29,8 @@ def read_nrrd_file(f):
     return ce_image.astype('uint8'), head
 
 
-def image_to_nrrd(image, Header):
-    # Header = {'units': ['m', 'm', 'm'], 'space units': ['microns', 'microns', 'microns']} #'spacings': [voxel_width,
-    # voxel_height, 1e-6]}
-    return nrrd.write(os.path.join(outpath, f"{name}.nrrd"), image, header=Header)
+def image_to_nrrd(image, header):
+    return nrrd.write(os.path.join(outpath, f"{name}.nrrd"), image, header=header)
 
 
 def contrast_enhancement(f):
@@ -47,8 +45,8 @@ for file in os.listdir(inpath):
     if file.endswith('.nrrd'):
         print(f'Working with Image: {file}')
         # Read the nrrd file and convert it into a 8-bit numpy array after contrast enhancement
-        nrrd_image_array, header = read_nrrd_file(file)
+        nrrd_image_array, Header = read_nrrd_file(file)
         # print(header)
         name, ext = file.split('.', 1)
-        processed_image = image_to_nrrd(nrrd_image_array, header)
+        processed_image = image_to_nrrd(nrrd_image_array, Header)
         print(f'####End of processing {file}!##################')

@@ -7,6 +7,7 @@
 
 # DONE: Check which file is it and then pass it onto respective read function that processes it.
 # DONE: Basic functions ---> convert to 8 bit, enhance contrast, save file into respective format.
+# TODO: Need original reformatted files and most likely an alternative way to enhance contrast for these files
 
 
 import os
@@ -30,12 +31,13 @@ def read_nrrd_file(f):
 def image_to_nrrd(image):
     # Header = {'units': ['m', 'm', 'm'], 'space units': ['microns', 'microns', 'microns']} #'spacings': [voxel_width,
     # voxel_height, 1e-6]}
-    return nrrd.write(os.path.join(outpath, f"{name}.nrrd"), image, index_order='F')
+    return nrrd.write(os.path.join(outpath, f"{name}.nrrd"), image)
 
 
 def contrast_enhancement(f):
-    alpha = 10.0  # Contrast control (1.0-3.0) but 5 is required for my purposes here
-    beta = 5  # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with salt and peper noise.
+    alpha = 3.0  # Contrast control (1.0-3.0) but 5 is required for my purposes here
+    beta = 1  # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with salt and peper
+    # noise.
     # contrast_enhanced_image = exposure.adjust_log(f, 50)
     contrast_enhanced_image = cv.convertScaleAbs(f, alpha=alpha, beta=beta)
     return contrast_enhanced_image

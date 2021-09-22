@@ -69,7 +69,7 @@ def get_image_data(f):
 
 
 def contrast_enhancement(f):
-    alpha = 5.0  # Contrast control (1.0-3.0) but 3 is required for my purposes here
+    alpha = 10.0  # Contrast control (1.0-3.0) but 3 is required for my purposes here
     beta = 1  # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with salt and pepper
     # noise.
     contrast_enhanced_image = cv.convertScaleAbs(f, alpha=alpha, beta=beta)
@@ -111,7 +111,7 @@ for file in os.listdir(c_path):
         CE_image_R = contrast_enhancement(RImage)
         CE_image_S = contrast_enhancement(SImage)
 
-        ##***********Rotation*********************************##
+        ##**************Rotation*****************************************##
         print(f'Image stack to be rotated: {file}')
 
         theta = float(input('Enter the angle by which image to be rotated:'))
@@ -126,79 +126,7 @@ for file in os.listdir(c_path):
         signal_nrrd_image: nrrd = image_to_nrrd(SImage, signal_channel_name)
         signal_tiff_image: tiff = image_to_tiff(SImage)
 
-
-
-# for item in os.listdir(line_path):
-#     if item.endswith(".tif") and re.search("ref", str(item)):
-#         print(f"Image stack to be saved: {item}")
-#         # Read the data back from file
-#         readdata = tiff.imread(os.path.join(line_path, item))
-#         name, fn = split_and_rename(item)
-#
-#         print(f"Creating {name}_{fn}_{reference_channel_name}.nrrd")
-#         nrrd.write(os.path.join(processed_path, f"{name}_{fn}_{reference_channel_name}.nrrd"),readdata,index_order="C",)
-#
-#         print(f"Creating {name}_{fn}_{reference_channel_name}.tif")
-#         with tiff.TiffWriter(os.path.join(processed_for_average_path, f"{name}_{fn}_{reference_channel_name}.tif"),imagej=True,) as tifw:
-#             tifw.write(readdata.astype("uint8"),metadata={"spacing": 1.0, "unit": "um", "axes": "ZYX"},)
 ##################################################################################################
 end = time.time()
 t = end - start
 print(f'Totally took {t}s')
-
-# rotated_page_list = []
-# rotated_image = tiff_unstackAndrestackForRotate(os.path.join(line_path, item))
-# print(f'Creating Rotated Image: rotated_{item}')
-# with tiff.TiffWriter(os.path.join(line_path, f"{item}"), imagej=True) as tifw:
-#     tifw.write(rotated_image.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
-
-
-# def tiff_unstackAndrestackForRotate(f):
-#     """
-#     :param f: tiff file
-#     :return: rotated_image_stack
-#     #1. Iterate through each file as a tiff file.
-#     #2. split into individual pages //Unstacking
-#     #3. rotate each page and save the rotated_page into a new list
-#     #4. restack each array from the list
-#     """
-#     with tiff.TiffFile(f, mode="r+b") as tif:
-#         print(f" Processing {tif} for rotation...")
-#         for page in tif.pages:
-#             rotated_page = _rotate(page.asarray(), theta)
-#             rotated_page_list.append(rotated_page)
-#             rotated_image_stack = np.stack(rotated_page_list)
-#     return rotated_image_stack.astype("uint8")
-
-
-# #Contrast Enhancement Function
-# alpha = 10.0 # Contrast control (1.0-3.0) but 5 is required for my purposes here
-# beta = 5 # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with unnecesary salt and peper noise.
-#
-# def tiff_UnstackAndrestackForContrastEnhancement(f):
-#     """
-#     :param f: tiff file
-#     :return: contrast_enhanced_image_stack
-#     #1. Iterate through each file as a tiff file.
-#     #2. Split into individual pages //Unstacking and convert each page into an 2D array
-#     #3. Enhance Contrast for each page and save the contrast_enhanced_page
-#     #3a. then pass through bilat filter to remove any residual salt and pepper noise
-#     #4. Add each page into contrast_enhanced_list and stack the list
-#     #5. Return the stack.
-#     """
-#     contrast_enhanced_list = []
-#     with tiff.TiffFile(f, mode="r+b") as tif:
-#         print(f" Processing {tif} for Enhancing Contrast...")
-#         for page in tif.pages:
-#             contrast_enhanced_page = cv.convertScaleAbs(page.asarray(), alpha=alpha, beta=beta)
-#             #Adding a Bilat filter to reduce salt and pepper noise
-#             contrast_enhanced_page= cv.bilateralFilter(contrast_enhanced_page, 9, 75, 75)
-#             contrast_enhanced_list.append(contrast_enhanced_page)
-#             contrast_enhanced_stack = np.stack(contrast_enhanced_list)
-#     return contrast_enhanced_stack.astype("uint8")
-
-# def split_and_rename(f):
-#     filename, exte = f.split(".")
-#     _first, _last = filename.split("_", 1)
-#     fishnum, tag = _last.split("_", 1)
-#     # print(_first, fishnum, ext)

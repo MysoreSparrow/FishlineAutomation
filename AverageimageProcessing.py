@@ -1,5 +1,9 @@
-## Script to perform Image procesing on averaged Image files after downloadng from cluster
+# Author: Keshava Prasad Gubbi
+# For any questions: Contact keshav.prasad.gubbi@gmail.com
+
+# Script to perform Image procesing on averaged Image files after downloadng from cluster
 # The folder for storing these nifti-zipped (.nii.gz) files is to store them fr easy access
+
 # DONE: import nifti file
 # DONE: Read the nifti file and also convert it to a np array
 # DONE: convert to 8 bit, perform contrast enhancement
@@ -9,7 +13,6 @@ import nibabel as nib
 import os
 import nrrd
 import re
-# from skimage import exposure
 import cv2 as cv
 filepath = r'C:/Users/keshavgubbi/Desktop/nifti/'
 
@@ -29,12 +32,12 @@ def read_nifti_file(f):
 
 
 def image_to_nrrd(image, img_name):
-    # Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
+    # header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
     return nrrd.write(os.path.join(filepath, f"{img_name}.nrrd"), image)
 
 
 def contrast_enhancement(f):
-    alpha = 10.0  # Contrast control (1.0-3.0) but 5 is required for my purposes here
+    alpha = 10.0  # Contrast control (1.0-3.0) but 10 is required for my purposes here
     beta = 5  # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with salt and peper noise.
     # contrast_enhanced_image = exposure.adjust_log(f, 50)
     contrast_enhanced_image = cv.convertScaleAbs(f, alpha=alpha, beta=beta)
@@ -45,8 +48,7 @@ tag = input('Enter reference channel name:')
 signal = input('Enter signal channel name:')
 ref_image_name = f'{signal}_AVG_{tag}'
 sig_image_name = f'{signal}_AVG_GFP'
-# Ref_channel = True
-#Contrast Enhancement Function
+
 
 for file in os.listdir(filepath):
     if file.endswith('.nii.gz'):

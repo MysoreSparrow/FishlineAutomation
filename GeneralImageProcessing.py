@@ -7,15 +7,15 @@
 
 # DONE: Check which file is it and then pass it onto respective read function that processes it.
 # DONE: Basic functions ---> convert to 8 bit, enhance contrast, save file into respective format.
-# DONE: Preserve and rewrite the processed nrrd files with rest of the metadata same as teh original file.
+# DONE: Preserve and rewrite the processed nrrd files with rest of the metadata same as the original file.
 
 
 import os
 import nrrd
 import cv2 as cv
 
-outpath = r'C:/Users/keshavgubbi/Desktop/nifti/reformatted'
-inpath = r'C:/Users/keshavgubbi/Desktop/nifti/reformat_raw'
+outpath = r'C:/Users/keshavgubbi/Desktop/nifti/standard_output/'
+inpath = r'C:/Users/keshavgubbi/Desktop/nifti/standard/'
 
 
 def read_nrrd_file(f):

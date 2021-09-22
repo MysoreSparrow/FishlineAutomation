@@ -27,7 +27,7 @@ if not os.path.exists(original_path):
     print(f"Creating {original_path}")
     os.makedirs(original_path, exist_ok=True)
 
-ref_ch_num = int(input("Enter Reference Channel Number:"))
+ref_ch_num = input("Enter Reference Channel Number:")
 
 
 def _rotate(src, angle):
@@ -38,20 +38,20 @@ def _rotate(src, angle):
 
 def image_to_nrrd(image, channel_name):
     Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
-    image_name = f'{line_name}_{fish_number}_{channel_name}'
+    image_name = f'{signal_channel_name}_{fish_number}_{channel_name}'
     print(f'Creating nrrd image with name : {image_name}.nrrd')
-    return nrrd.write(os.path.join(processed_path, f"{image_name}.nrrd"), image, header=Header)
+    return nrrd.write(os.path.join(processed_path, f"{image_name}.nrrd"), image, header=Header, index_order='C')
 
 
 def image_to_tiff(image):
     print(f'Creating file {line_name}.tif')
-    # metadata={'spacing': ['1./VoxelSizeList[0]', '1./VoxelSizeList[0]', '1'], 'unit': 'um',
-    #                                   'axes ': 'ZYX', 'imagej': 'True'}
-    return tiff.imwrite(os.path.join(processed_for_average_path, f"{line_name}.tif"), image)
+    return tiff.imwrite(os.path.join(processed_for_average_path, f"{line_name}.tif"), image,
+                        metadata={'spacing': ['1./VoxelSizeList[0]', '1./VoxelSizeList[0]', '1'], 'unit': 'um',
+                        'axes ': 'ZYX', 'imagej': 'True'})
 
 
 def get_channel_name(f):
-    name, ext = file.split(".")
+    name, ext = f.split(".")
     a, ref_ch_name = name.rsplit('_', 1)
     sig_ch_name, fish_num = a.rsplit('_', 1)
     return name, ref_ch_name, sig_ch_name, fish_num
@@ -122,7 +122,11 @@ for file in os.listdir(c_path):
         print("Final Saving of Images to respective folders!")
         Reference_nrrd_image: nrrd = image_to_nrrd(RImage, reference_channel_name)
         Reference_tiff_image: tiff = image_to_tiff(RImage)
-        # Signal1_nrrd_image: nrrd = image_to_nrrd(1, S1Image, sig_ch1_name)
+
+        signal_nrrd_image: nrrd = image_to_nrrd(SImage, signal_channel_name)
+        signal_tiff_image: tiff = image_to_tiff(SImage)
+
+
 
 # for item in os.listdir(line_path):
 #     if item.endswith(".tif") and re.search("ref", str(item)):

@@ -1,14 +1,16 @@
-USER = "keshavgubbi"
-GAL4= input("Enter line name of the fish: ")
-# base_fish_num = input("Enter base fish number you have chosen: ")
-tag = input("Enter the tag name for the fish line:")
+import os
 
-L6 = ["#SBATCH -o /u/keshavgubbi/scripts/live/output/tjob_hybrid_out.%j \n",
-      "#SBATCH -e /u/keshavgubbi/scripts/live/output/tjob_hybrid_err.%j \n"]
-L7 = ["#SBATCH -D /u/keshavgubbi/ \n", "# Job name: \n", "#SBATCH -J avg_templ\n", "# Number of nodes and MPI tasks per node: \n",
+USER = "elaurell"
+#GAL4= input("Enter line name of the fish: ")
+# base_fish_num = input("Enter base fish number you have chosen: ")
+#tag = input("Enter the tag name for the fish line:")
+
+L6 = ["#SBATCH -o /u/elaurell/scripts/live/output/tjob_hybrid_out.%j \n",
+      "#SBATCH -e /u/elaurell/scripts/live/output/tjob_hybrid_err.%j \n"]
+L7 = ["#SBATCH -D /u/elaurell/ \n", "# Job name: \n", "#SBATCH -J avg_templ\n", "# Number of nodes and MPI tasks per node: \n",
       "#SBATCH --nodes=1 \n", "#SBATCH --ntasks-per-node=1 \n", "# for OpenMP: \n", "#SBATCH --cpus-per-task=72\n",
       "# \n"]
-L8 = ["#SBATCH --mem=100000 \n", "#SBATCH --mail-type=none \n", "#SBATCH --mail-user=keshavgubbi@rzg.mpg.de \n",
+L8 = ["#SBATCH --mem=100000 \n", "#SBATCH --mail-type=none \n", "#SBATCH --mail-user=elaurell@rzg.mpg.de \n",
       "# Wall clock limit: \n", "#SBATCH --time=18:00:00 \n", "export OMP_NUM_THREADS=72 \n",
       "# For pinning threads correctly: \n", "export OMP_PLACES=cores \n", " \n"]
 L9 = ["antsbin=/u/${USER}/ANTs/antsInstallExample/install/bin/ \n"]
@@ -37,30 +39,34 @@ L11 = ["$antsbin/antsApplyTransforms -d 3 \ \n", "-v 0 \ \n", "-- float \ \n", "
 
 # \n is placed to indicate EOL (End of Line)
 # if __name__ == '__main__':
-#
-file3 = open(rf"C:\Users\keshavgubbi\Desktop\AutomatedScripts\ANTs_standard_{GAL4}.sh", "w")
-file3.write("#!/bin/bash -l \n")
-file3.write("# Standard output and error: \n")
-file3.writelines(L6)
-file3.write("# Initial working directory: \n")
-file3.writelines(L7)
-file3.write("# Request 100 GB of main Memory per node in Units of MB: \n")
-file3.writelines(L8)
-file3.write(f"GAL4={GAL4} \n")
-file3.write("\n")
-file3.writelines(L9)
-file3.write("\n")
-file3.writelines(output)
-file3.write("\n")
-file3.writelines(input)
-file3.write("\n")
-file3.write(f"template1=/u/{USER}/templates/live_standard_{tag}.nrrd")
-file3.write("\n")
-file3.write("\n")
-file3.write("#Run the ANTs Program: \n")
-file3.writelines(L10)
-file3.write("\n")
-file3.writelines(L11)
-file3.close()  # to change file access modes
+def create_standard_script(slurmpath, tag, GAL4)
+    file3 = open(rf"{slurmpath}/ANTs_standard_{GAL4}.sh", "w")
+    file3.write("#!/bin/bash -l \n")
+    file3.write("# Standard output and error: \n")
+    file3.writelines(L6)
+    file3.write("# Initial working directory: \n")
+    file3.writelines(L7)
+    file3.write("# Request 100 GB of main Memory per node in Units of MB: \n")
+    file3.writelines(L8)
+    file3.write(f"GAL4={GAL4} \n")
+    file3.write("\n")
+    file3.writelines(L9)
+    file3.write("\n")
+    file3.writelines(output)
+    file3.write("\n")
+    file3.writelines(input)
+    file3.write("\n")
+    file3.write(f"template1=/u/{USER}/templates/live_standard_{tag}.nrrd")
+    file3.write("\n")
+    file3.write("\n")
+    file3.write("#Run the ANTs Program: \n")
+    file3.writelines(L10)
+    file3.write("\n")
+    file3.writelines(L11)
+    file3.close()  # to change file access modes
+    return file3
 
 
+
+if __name__ == '__main__':
+    pass

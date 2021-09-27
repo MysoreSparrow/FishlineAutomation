@@ -1,14 +1,16 @@
-USER = "keshavgubbi"
-date = input("Enter line name of the fish: ")
-# base_fish_num = input("Enter base fish number you have chosen: ")
-tag = input("Enter the tag name for the fish line:")
+import os
 
-L6 = ["#SBATCH -o /u/keshavgubbi/scripts/live/output/tjob_hybrid_out.%j \n",
-      "#SBATCH -e /u/keshavgubbi/scripts/live/output/tjob_hybrid_err.%j \n"]
-L7 = ["#SBATCH -D /u/keshavgubbi/ \n", "# Job name: \n", "#SBATCH -J avg_templ\n", "# Number of nodes and MPI tasks per node: \n",
+USER = "elaurell"
+#date = input("Enter line name of the fish: ")
+# base_fish_num = input("Enter base fish number you have chosen: ")
+#tag = input("Enter the tag name for the fish line:")
+
+L6 = ["#SBATCH -o /u/elaurell/scripts/live/output/tjob_hybrid_out.%j \n",
+      "#SBATCH -e /u/elaurell/scripts/live/output/tjob_hybrid_err.%j \n"]
+L7 = ["#SBATCH -D /u/elaurell/ \n", "# Job name: \n", "#SBATCH -J avg_templ\n", "# Number of nodes and MPI tasks per node: \n",
       "#SBATCH --nodes=1 \n", "#SBATCH --ntasks-per-node=1 \n", "# for OpenMP: \n", "#SBATCH --cpus-per-task=72\n",
       "# \n"]
-L8 = ["#SBATCH --mem=128000 \n", "#SBATCH --mail-type=none \n", "#SBATCH --mail-user=keshavgubbi@rzg.mpg.de \n",
+L8 = ["#SBATCH --mem=128000 \n", "#SBATCH --mail-type=none \n", "#SBATCH --mail-user=elaurell@rzg.mpg.de \n",
       "# Wall clock limit: \n", "#SBATCH --time=08:00:00 \n", "export OMP_NUM_THREADS=72 \n",
       "# For pinning threads correctly: \n", "export OMP_PLACES=cores \n", " \n"]
 L9 = ["mkdir /ptmp/${USER}/avg_templ/live/reformatted/${date} \n", "mkdir /ptmp/${"
@@ -37,35 +39,38 @@ L11 = ["$antsbin/antsApplyTransforms -d 3 \ \n", "-v 0 \ \n", "-- float \ \n", "
        "-i ${input2} \ \n", "-r ${template1} \ \n", "-o ${output3} \ \n", "-t ${output1}1Warp.nii.gz \ \n",
        "-t ${output1}0GenericAffine.mat \n", " \n", "rm -rf ${input1} ${input2} \n"]
 
-# \n is placed to indicate EOL (End of Line)
-# if __name__ == '__main__':
-#
-file2 = open(rf"C:\Users\keshavgubbi\Desktop\AutomatedScripts\ANTs_lines_{date}.sh", "w")
-file2.write("#!/bin/bash -l \n")
-file2.write("# Standard output and error: \n")
-file2.writelines(L6)
-file2.write("# Initial working directory: \n")
-file2.writelines(L7)
-file2.write("# Request 128 GB of main Memory per node in Units of MB: \n")
-file2.writelines(L8)
-file2.write(f"date={date} \n")
-file2.write("\n")
-file2.writelines(L9)
-file2.write("\n")
-file2.writelines(output)
-file2.write("\n")
-file2.writelines(input)
-file2.write("\n")
-file2.write(f"template1=/u/{USER}/templates/live_standard_{tag}.nrrd")
-file2.write("\n")
-# file2.write(f"target1=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_{tag}.tif \n")
-# file2.write(f"target2=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_GFP.tif \n")
-# file2.write("\n")aa
-file2.write("\n")
-file2.write("#Run the ANTs Program: \n")
-file2.writelines(L10)
-file2.write("\n")
-file2.writelines(L11)
-file2.close()  # to change file access modes
+
+def create_lines_script(slurmpath, tag, date):
+
+    file2 = open(rf"{slurmpath}/ANTs_lines_{date}.sh", "w")
+    file2.write("#!/bin/bash -l \n")
+    file2.write("# Standard output and error: \n")
+    file2.writelines(L6)
+    file2.write("# Initial working directory: \n")
+    file2.writelines(L7)
+    file2.write("# Request 128 GB of main Memory per node in Units of MB: \n")
+    file2.writelines(L8)
+    file2.write(f"date={date} \n")
+    file2.write("\n")
+    file2.writelines(L9)
+    file2.write("\n")
+    file2.writelines(output)
+    file2.write("\n")
+    file2.writelines(input)
+    file2.write("\n")
+    file2.write(f"template1=/u/{USER}/templates/live_standard_{tag}.nrrd")
+    file2.write("\n")
+    # file2.write(f"target1=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_{tag}.tif \n")
+    # file2.write(f"target2=/ptmp/{USER}/avg_templ/live/images/low_res/${date}_{base_fish_num}_GFP.tif \n")
+    # file2.write("\n")aa
+    file2.write("\n")
+    file2.write("#Run the ANTs Program: \n")
+    file2.writelines(L10)
+    file2.write("\n")
+    file2.writelines(L11)
+    file2.close()  # to change file access modes
+    return file2
 
 
+if __name__ == '__main__':
+    pass
